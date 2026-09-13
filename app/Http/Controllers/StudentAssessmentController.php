@@ -1421,7 +1421,7 @@ class StudentAssessmentController extends Controller
                             'temperature' =>
                                 0.2,
 
-                            'max_tokens' =>
+                            'max_completion_tokens' =>
                                 700,
                         ]
                     );

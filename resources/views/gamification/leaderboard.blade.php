@@ -1765,9 +1765,7 @@
 
 
                         <p class="sv-leaderboard-description">
-                            See how your learning progress compares with other
-                            learners. Complete missions, earn XP, and climb the
-                            SpeakVerse leaderboard.
+                            Bandingkan XP dengan siswa di kelas atau sekolah yang sama.
                         </p>
 
                     </div>
@@ -1884,11 +1882,14 @@
                 <div class="sv-ranking-title-area">
 
                     <h2 class="sv-ranking-card-title">
-                        Global Ranking
+                        {{ ($scope ?? 'class') === 'class' ? 'Peringkat Kelas' : 'Peringkat Sekolah' }}
                     </h2>
 
                     <p class="sv-ranking-card-subtitle">
-                        Learners are ranked by their total lifetime XP.
+                        Diurutkan dari XP tertinggi.
+                        <a href="{{ route('gamification.leaderboard', ['scope' => 'class']) }}">Kelas</a>
+                        ·
+                        <a href="{{ route('gamification.leaderboard', ['scope' => 'school']) }}">Sekolah</a>
                     </p>
 
                 </div>

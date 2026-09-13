@@ -22,6 +22,11 @@ class User extends Authenticatable
         'role',
         'google_id',
         'google_avatar',
+        'nip',
+        'school',
+        'major',
+        'grade',
+        'parallel',
 
         // Gamification
         'xp',
@@ -65,6 +70,16 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    public function isTeacher(): bool
+    {
+        return $this->role === 'teacher';
+    }
+
+    public function teachingAssignments(): HasMany
+    {
+        return $this->hasMany(TeacherClassAssignment::class);
     }
 
     /**

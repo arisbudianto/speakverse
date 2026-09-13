@@ -21,6 +21,10 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\LearningContentController;
 use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\TeacherController;
+use App\Http\Controllers\Teacher\DashboardController as TeacherDashboardController;
+use App\Http\Controllers\Staff\ClassRosterController;
+use App\Http\Controllers\Staff\ClassResultsController;
 
 use App\Http\Controllers\Admin\ReadingMaterialController;
 use App\Http\Controllers\Admin\ReadingQuestionController;
@@ -79,6 +83,11 @@ Route::middleware([
         '/dashboard',
         [StudentDashboardController::class, 'index']
     )->name('dashboard');
+
+    Route::get(
+        '/teacher/dashboard',
+        [TeacherDashboardController::class, 'index']
+    )->name('teacher.dashboard');
 
 
     /*
@@ -430,21 +439,26 @@ Route::middleware([
     Route::get(
         '/speaking-quest',
         function () {
-            return view('speaking.quest');
+            return redirect()
+                ->route('missions')
+                ->with('info', 'Speaking practice is available inside Missions.');
         }
     )->name('speaking.quest');
 
     Route::get(
         '/reading-quest',
         function () {
-            return view('reading.quest');
+            return redirect()
+                ->route('missions')
+                ->with('info', 'Reading practice is available inside Missions.');
         }
     )->name('reading.quest');
 
     Route::get(
         '/vocabulary-quest',
         function () {
-            return view('vocabulary.quest');
+            return redirect()
+                ->route('vocabulary.pretest');
         }
     )->name('vocabulary.quest');
 
@@ -498,10 +512,12 @@ Route::middleware([
 Route::middleware([
     'auth',
     'verified',
-    'admin',
+    'staff',
 ])
     ->prefix('admin')
     ->group(function () {
+
+        Route::middleware('admin')->group(function () {
 
         /*
         |--------------------------------------------------------------------------
@@ -537,6 +553,36 @@ Route::middleware([
                 'admin.users'
             );
 
+        Route::get(
+            '/teachers',
+            [TeacherController::class, 'index']
+        )->name('admin.teachers.index');
+
+        Route::get(
+            '/teachers/{user}/classes',
+            [TeacherController::class, 'classes']
+        )->name('admin.teachers.classes');
+
+        Route::post(
+            '/teachers/{user}/classes',
+            [TeacherController::class, 'storeClass']
+        )->name('admin.teachers.classes.store');
+
+        Route::get(
+            '/teachers/{user}/classes/{assignment}/edit',
+            [TeacherController::class, 'editClass']
+        )->name('admin.teachers.classes.edit');
+
+        Route::put(
+            '/teachers/{user}/classes/{assignment}',
+            [TeacherController::class, 'updateClass']
+        )->name('admin.teachers.classes.update');
+
+        Route::delete(
+            '/teachers/{user}/classes/{assignment}',
+            [TeacherController::class, 'destroyClass']
+        )->name('admin.teachers.classes.destroy');
+
 
         /*
         |--------------------------------------------------------------------------
@@ -563,12 +609,28 @@ Route::middleware([
             [AnalyticsController::class, 'index']
         )->name('admin.analytics');
 
+        });
+
 
         /*
         |--------------------------------------------------------------------------
         | Learning Content
         |--------------------------------------------------------------------------
         */
+
+        Route::get('/classes', [ClassRosterController::class, 'index'])->name('staff.classes.index');
+        Route::post('/classes/assignments', [ClassRosterController::class, 'storeAssignment'])->name('staff.classes.assignments.store');
+        Route::get('/classes/assignments/{assignment}/edit', [ClassRosterController::class, 'editAssignment'])->name('staff.classes.assignments.edit');
+        Route::put('/classes/assignments/{assignment}', [ClassRosterController::class, 'updateAssignment'])->name('staff.classes.assignments.update');
+        Route::delete('/classes/assignments/{assignment}', [ClassRosterController::class, 'destroyAssignment'])->name('staff.classes.assignments.destroy');
+        Route::get('/classes/template', [ClassRosterController::class, 'template'])->name('staff.classes.template');
+        Route::get('/classes/show', [ClassRosterController::class, 'show'])->name('staff.classes.show');
+        Route::get('/classes/results', [ClassResultsController::class, 'show'])->name('staff.classes.results');
+        Route::get('/classes/results/export', [ClassResultsController::class, 'export'])->name('staff.classes.results.export');
+        Route::post('/classes/import', [ClassRosterController::class, 'import'])->name('staff.classes.import');
+        Route::post('/classes/students', [ClassRosterController::class, 'storeStudent'])->name('staff.classes.students.store');
+        Route::put('/classes/students/{user}', [ClassRosterController::class, 'updateStudent'])->name('staff.classes.students.update');
+        Route::delete('/classes/students/{user}', [ClassRosterController::class, 'destroyStudent'])->name('staff.classes.students.destroy');
 
         Route::get(
             '/learning',

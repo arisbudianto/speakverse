@@ -257,6 +257,12 @@ class GoogleAuthController extends Controller
                 );
             }
 
+            if (method_exists($user, 'isTeacher') && $user->isTeacher()) {
+                return redirect()->intended(
+                    route('teacher.dashboard')
+                );
+            }
+
             return redirect()->intended(
                 route('dashboard')
             );

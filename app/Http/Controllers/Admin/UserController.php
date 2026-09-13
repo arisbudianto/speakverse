@@ -30,7 +30,9 @@ class UserController extends Controller
      */
     public function create()
     {
-        return view('admin.users.create');
+        return view('admin.users.create', [
+            'schools' => config('schools', []),
+        ]);
     }
 
     /**
@@ -53,9 +55,39 @@ class UserController extends Controller
                     'unique:users,email',
                 ],
 
+                'nip' => [
+                    'nullable',
+                    'string',
+                    'max:30',
+                ],
+
+                'school' => [
+                    'nullable',
+                    'string',
+                    Rule::in(array_keys(config('schools', []))),
+                ],
+
+                'major' => [
+                    'nullable',
+                    'string',
+                    Rule::in((config('schools', [])[$request->school] ?? [])),
+                ],
+
+                'grade' => [
+                    'nullable',
+                    'string',
+                    Rule::in(['X', 'XI', 'XII']),
+                ],
+
+                'parallel' => [
+                    'nullable',
+                    'string',
+                    Rule::in(['A', 'B', 'C', 'D']),
+                ],
+
                 'role' => [
                     'required',
-                    Rule::in(['admin', 'user']),
+                    Rule::in(['admin', 'user', 'student', 'teacher']),
                 ],
 
                 'password' => [
@@ -124,7 +156,10 @@ class UserController extends Controller
     {
         return view(
             'admin.users.edit',
-            compact('user')
+            [
+                'user' => $user,
+                'schools' => config('schools', []),
+            ]
         );
     }
 
@@ -153,9 +188,39 @@ class UserController extends Controller
                     )->ignore($user->id),
                 ],
 
+                'nip' => [
+                    'nullable',
+                    'string',
+                    'max:30',
+                ],
+
+                'school' => [
+                    'nullable',
+                    'string',
+                    Rule::in(array_keys(config('schools', []))),
+                ],
+
+                'major' => [
+                    'nullable',
+                    'string',
+                    Rule::in((config('schools', [])[$request->school] ?? [])),
+                ],
+
+                'grade' => [
+                    'nullable',
+                    'string',
+                    Rule::in(['X', 'XI', 'XII']),
+                ],
+
+                'parallel' => [
+                    'nullable',
+                    'string',
+                    Rule::in(['A', 'B', 'C', 'D']),
+                ],
+
                 'role' => [
                     'required',
-                    Rule::in(['admin', 'user']),
+                    Rule::in(['admin', 'user', 'student', 'teacher']),
                 ],
 
                 'password' => [

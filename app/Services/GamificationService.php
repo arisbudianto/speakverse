@@ -1018,7 +1018,58 @@ class GamificationService
 
             'total_badge_count' =>
                 count($badges),
+
+            'class_rank' => $this->rankAmong($user, true),
+            'school_rank' => $this->rankAmong($user, false),
+            'classmates' => $this->peerCount($user, true),
+            'schoolmates' => $this->peerCount($user, false),
         ];
+    }
+
+    public function studentQuery(?User $viewer = null, bool $sameClass = false)
+    {
+        $query = User::query()
+            ->where(function ($q) {
+                $q->whereNull('role')
+                    ->orWhere('role', 'student')
+                    ->orWhere('role', 'user');
+            });
+
+        if ($viewer && $viewer->school) {
+            $query->where('school', $viewer->school);
+        }
+
+        if ($sameClass && $viewer) {
+            if ($viewer->major) {
+                $query->where('major', $viewer->major);
+            }
+            if ($viewer->grade) {
+                $query->where('grade', $viewer->grade);
+            }
+            if ($viewer->parallel) {
+                $query->where('parallel', $viewer->parallel);
+            }
+        }
+
+        return $query;
+    }
+
+    public function rankAmong(User $user, bool $sameClass = true): int
+    {
+        return $this->studentQuery($user, $sameClass)
+            ->where(function ($query) use ($user) {
+                $query->where('xp', '>', (int) $user->xp)
+                    ->orWhere(function ($tie) use ($user) {
+                        $tie->where('xp', (int) $user->xp)
+                            ->where('id', '<', $user->id);
+                    });
+            })
+            ->count() + 1;
+    }
+
+    public function peerCount(User $user, bool $sameClass = true): int
+    {
+        return max(1, $this->studentQuery($user, $sameClass)->count());
     }
 
     /**

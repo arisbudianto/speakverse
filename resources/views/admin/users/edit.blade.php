@@ -77,6 +77,23 @@
 
             </div>
 
+            
+            <div>
+                <label for="nip" class="block mb-2 font-bold">NIP</label>
+                <input id="nip" type="text" name="nip" value="{{ old('nip', $user->nip) }}"
+                    class="w-full rounded-2xl border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 px-5 py-4 focus:border-cyan-500 focus:ring-cyan-500">
+                @error('nip')<p class="mt-2 text-sm text-red-500">{{ $message }}</p>@enderror
+            </div>
+
+@include('partials.school-major-grade-fields', [
+                'schools' => $schools ?? config('schools', []),
+                'selectedSchool' => old('school', $user->school),
+                'selectedMajor' => old('major', $user->major),
+                'selectedGrade' => old('grade', $user->grade),
+                'selectedParallel' => old('parallel', $user->parallel),
+                'required' => false,
+            ])
+
             <div>
 
                 <label for="role" class="block mb-2 font-bold">
@@ -90,12 +107,16 @@
                     px-5 py-4
                     focus:border-cyan-500 focus:ring-cyan-500">
 
-                    <option value="user" @selected(old('role', $user->role) === 'user')>
+                    <option value="student" @selected(in_array(old('role', $user->role), ['student', 'user'], true))>
                         Student
                     </option>
 
                     <option value="admin" @selected(old('role', $user->role) === 'admin')>
                         Administrator
+                    </option>
+
+                    <option value="teacher" @selected(old('role', $user->role) === 'teacher')>
+                        Teacher
                     </option>
 
                 </select>

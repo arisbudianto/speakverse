@@ -31,7 +31,16 @@ class StudentReadingController extends Controller
                 $lesson->id
             )
             ->orderBy('id')
-            ->firstOrFail();
+            ->first();
+
+        if (!$material) {
+            return redirect()
+                ->route('missions')
+                ->with(
+                    'error',
+                    'Reading material is not available yet. Please wait until the admin adds it.'
+                );
+        }
 
         return view(
             'missions.reading.index',
@@ -58,7 +67,16 @@ class StudentReadingController extends Controller
                 $lesson->id
             )
             ->orderBy('id')
-            ->firstOrFail();
+            ->first();
+
+        if (!$material) {
+            return redirect()
+                ->route('missions')
+                ->with(
+                    'error',
+                    'Reading quiz is not available yet. Please wait until the admin adds it.'
+                );
+        }
 
         return view(
             'missions.reading.quiz',

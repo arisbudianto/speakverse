@@ -9,6 +9,7 @@ use App\Models\ListeningMaterial;
 use App\Models\UserLessonProgress;
 use App\Services\GamificationService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +23,7 @@ class StudentListeningController extends Controller
      */
     public function listening(
         Lesson $lesson
-    ): View {
+    ): View|RedirectResponse {
         $material =
             ListeningMaterial::with(
                 'questions'
@@ -31,7 +32,16 @@ class StudentListeningController extends Controller
                     'lesson_id',
                     $lesson->id
                 )
-                ->firstOrFail();
+                ->first();
+
+        if (!$material) {
+            return redirect()
+                ->route('missions')
+                ->with(
+                    'error',
+                    'Listening material is not available yet. Please wait until the admin adds it.'
+                );
+        }
 
         return view(
             'missions.listening.index',
@@ -50,7 +60,7 @@ class StudentListeningController extends Controller
      */
     public function quiz(
         Lesson $lesson
-    ): View {
+    ): View|RedirectResponse {
         $material =
             ListeningMaterial::with([
                 'questions' =>
@@ -63,7 +73,16 @@ class StudentListeningController extends Controller
                     'lesson_id',
                     $lesson->id
                 )
-                ->firstOrFail();
+                ->first();
+
+        if (!$material) {
+            return redirect()
+                ->route('missions')
+                ->with(
+                    'error',
+                    'Listening quiz is not available yet. Please wait until the admin adds it.'
+                );
+        }
 
         return view(
             'missions.listening.quiz',

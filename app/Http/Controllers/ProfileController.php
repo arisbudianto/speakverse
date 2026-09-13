@@ -24,8 +24,14 @@ class ProfileController extends Controller
 
         }
 
+        $user = $request->user();
+        if (method_exists($user, 'teachingAssignments')) {
+            $user->load('teachingAssignments');
+        }
+
         return view('profile.edit', [
-            'user' => $request->user(),
+            'user' => $user,
+            'schools' => config('schools', []),
         ]);
     }
 

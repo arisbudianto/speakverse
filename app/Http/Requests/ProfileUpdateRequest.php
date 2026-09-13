@@ -16,6 +16,12 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
+        $schools = config('schools', []);
+        $schoolNames = array_keys($schools);
+        $majors = $schools[$this->input('school')] ?? [];
+        $role = $this->user()?->role;
+        $isStaff = in_array($role, ['admin', 'teacher'], true);
+
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => [
@@ -26,6 +32,10 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            'school' => [$role === 'admin' ? 'nullable' : 'required', 'string', Rule::in($schoolNames)],
+            'major' => [$isStaff ? 'nullable' : 'required', 'string', Rule::in($majors)],
+            'grade' => [$isStaff ? 'nullable' : 'required', 'string', Rule::in(['X', 'XI', 'XII'])],
+            'parallel' => [$isStaff ? 'nullable' : 'required', 'string', Rule::in(['A', 'B', 'C', 'D'])],
         ];
     }
 }

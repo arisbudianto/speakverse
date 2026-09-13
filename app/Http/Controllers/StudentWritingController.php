@@ -26,7 +26,16 @@ class StudentWritingController extends Controller
     {
         $material = WritingMaterial::with('questions')
             ->where('lesson_id', $lesson->id)
-            ->firstOrFail();
+            ->first();
+
+        if (!$material) {
+            return redirect()
+                ->route('missions')
+                ->with(
+                    'error',
+                    'Writing material is not available yet. Please wait until the admin adds it.'
+                );
+        }
 
         return view(
             'missions.writing.index',
@@ -44,7 +53,16 @@ class StudentWritingController extends Controller
     {
         $material = WritingMaterial::with('questions')
             ->where('lesson_id', $lesson->id)
-            ->firstOrFail();
+            ->first();
+
+        if (!$material) {
+            return redirect()
+                ->route('missions')
+                ->with(
+                    'error',
+                    'Writing task is not available yet. Please wait until the admin adds it.'
+                );
+        }
 
         return view(
             'missions.writing.quiz',
@@ -480,7 +498,7 @@ class StudentWritingController extends Controller
                     'temperature' =>
                         0.2,
 
-                    'max_tokens' =>
+                    'max_completion_tokens' =>
                         900,
                 ]
             );

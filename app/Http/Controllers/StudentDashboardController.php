@@ -41,6 +41,11 @@ class StudentDashboardController extends Controller
                 ->route('admin.dashboard');
         }
 
+        if ($user->role === 'teacher') {
+            return redirect()
+                ->route('teacher.dashboard');
+        }
+
         $userId = $user->id;
 
         /*

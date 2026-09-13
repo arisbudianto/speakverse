@@ -104,7 +104,7 @@ document.documentElement.classList.toggle('dark', darkMode)"
                         </h1>
 
                         <p class="text-xs text-slate-500 dark:text-slate-400">
-                            Admin Panel
+                            {{ auth()->user()?->role === 'teacher' ? 'Menu Guru' : 'Admin Panel' }}
                         </p>
 
                     </div>
@@ -127,31 +127,52 @@ document.documentElement.classList.toggle('dark', darkMode)"
 
                 <nav class="space-y-2">
 
-                    <!-- DASHBOARD -->
+                    @if (auth()->user()?->role === 'teacher')
+                    <a href="{{ route('teacher.dashboard') }}"
+                        class="flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200 font-semibold
+                        {{ request()->routeIs('teacher.dashboard')
+                            ? 'bg-cyan-500/10 text-cyan-400 shadow-lg shadow-cyan-500/5'
+                            : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300' }}">
+                        <span class="text-xl">🏠</span>
+                        <span>Dashboard</span>
+                    </a>
+                    @else
                     <a href="{{ route('admin.dashboard') }}"
                         class="flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200 font-semibold
                         {{ request()->routeIs('admin.dashboard')
                             ? 'bg-cyan-500/10 text-cyan-400 shadow-lg shadow-cyan-500/5'
                             : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300' }}">
-
                         <span class="text-xl">📊</span>
-
                         <span>Dashboard</span>
-
                     </a>
-
-                    <!-- USERS -->
                     <a href="{{ route('admin.users.index') }}"
                         class="flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200 font-semibold
                         {{ request()->routeIs('admin.users.*')
                             ? 'bg-cyan-500/10 text-cyan-400 shadow-lg shadow-cyan-500/5'
                             : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300' }}">
-
                         <span class="text-xl">👥</span>
-
                         <span>Users</span>
-
                     </a>
+                    <a href="{{ route('admin.teachers.index') }}"
+                        class="flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200 font-semibold
+                        {{ request()->routeIs('admin.teachers.*')
+                            ? 'bg-cyan-500/10 text-cyan-400 shadow-lg shadow-cyan-500/5'
+                            : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300' }}">
+                        <span class="text-xl">👩‍🏫</span>
+                        <span>Guru</span>
+                    </a>
+                    @endif
+
+                    @if (\Illuminate\Support\Facades\Route::has('staff.classes.index'))
+                    <a href="{{ route('staff.classes.index') }}"
+                        class="flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200 font-semibold
+                        {{ request()->routeIs('staff.classes.*')
+                            ? 'bg-cyan-500/10 text-cyan-400 shadow-lg shadow-cyan-500/5'
+                            : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300' }}">
+                        <span class="text-xl">🏫</span>
+                        <span>Manajemen Kelas</span>
+                    </a>
+                    @endif
 
                     <!-- LEARNING -->
                     <a href="{{ route('admin.learning') }}"
@@ -174,6 +195,7 @@ document.documentElement.classList.toggle('dark', darkMode)"
 
                     </a>
 
+                    @if (auth()->user()?->role === 'admin')
                     <!-- ANALYTICS -->
                     <a href="{{ route('admin.analytics') }}"
                         class="flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200 font-semibold
@@ -186,6 +208,7 @@ document.documentElement.classList.toggle('dark', darkMode)"
                         <span>Analytics</span>
 
                     </a>
+                    @endif
 
                 </nav>
 
@@ -248,11 +271,11 @@ document.documentElement.classList.toggle('dark', darkMode)"
                     <div>
 
                         <h2 class="text-2xl lg:text-4xl font-black leading-none">
-                            Admin Dashboard
+                            {{ auth()->user()?->role === 'teacher' ? 'Dashboard Guru' : 'Admin Dashboard' }}
                         </h2>
 
                         <p class="hidden sm:block mt-2 text-sm text-slate-500 dark:text-slate-400">
-                            Manage SpeakVerse Platform
+                            {{ auth()->user()?->role === 'teacher' ? 'Kelola kelas, siswa, materi, dan soal' : 'Manage SpeakVerse Platform' }}
                         </p>
 
                     </div>
@@ -293,7 +316,7 @@ document.documentElement.classList.toggle('dark', darkMode)"
                                 </h3>
 
                                 <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                                    Administrator
+                                    {{ auth()->user()?->role === 'teacher' ? 'Guru' : 'Administrator' }}
                                 </p>
 
                             </div>
@@ -352,7 +375,7 @@ document.documentElement.classList.toggle('dark', darkMode)"
                                         text-cyan-400
                                         text-xs font-bold">
 
-                                        Administrator
+                                        {{ auth()->user()?->role === 'teacher' ? 'Guru' : 'Administrator' }}
 
                                     </div>
 
@@ -364,7 +387,7 @@ document.documentElement.classList.toggle('dark', darkMode)"
                             <div class="border-t border-slate-200 dark:border-white/10 p-4">
 
                                 <!-- PROFILE SETTINGS -->
-                                <a href="{{ route('admin.profile.edit') }}"
+                                <a href="{{ auth()->user()?->role === 'teacher' ? route('profile.edit') : route('admin.profile.edit') }}"
                                     class="flex items-center gap-4
                                     px-4 py-4 rounded-2xl
                                     hover:bg-slate-100 dark:hover:bg-white/5

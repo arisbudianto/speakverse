@@ -369,10 +369,10 @@ class GamificationController extends Controller
         |
         */
 
-        $gamificationService
-            ->syncAllStudents();
-
         $user->refresh();
+
+        $scope = request('scope', ($user->grade && $user->parallel) ? 'class' : 'school');
+        $sameClass = $scope === 'class';
 
         /*
         |--------------------------------------------------------------------------
@@ -383,25 +383,12 @@ class GamificationController extends Controller
         |
         */
 
-        $leaders =
-            User::query()
-                ->where(
-                    function ($query) {
-                        $query
-                            ->whereNull(
-                                'role'
-                            )
-                            ->orWhere(
-                                'role',
-                                '!=',
-                                'admin'
-                            );
-                    }
-                )
-                ->orderByDesc('xp')
-                ->orderBy('id')
-                ->limit(100)
-                ->get();
+        $leaders = $gamificationService
+            ->studentQuery($user, $sameClass)
+            ->orderByDesc('xp')
+            ->orderBy('id')
+            ->limit(100)
+            ->get();
 
         /*
         |--------------------------------------------------------------------------
@@ -412,58 +399,15 @@ class GamificationController extends Controller
         |
         */
 
-        $currentRank =
-            User::query()
-                ->where(
-                    function ($query) {
-                        $query
-                            ->whereNull(
-                                'role'
-                            )
-                            ->orWhere(
-                                'role',
-                                '!=',
-                                'admin'
-                            );
-                    }
-                )
-                ->where(
-                    function ($query) use (
-                        $user
-                    ) {
-                        $query
-                            ->where(
-                                'xp',
-                                '>',
-                                $user->xp
-                            )
-                            ->orWhere(
-                                function ($tie) use (
-                                    $user
-                                ) {
-                                    $tie
-                                        ->where(
-                                            'xp',
-                                            $user->xp
-                                        )
-                                        ->where(
-                                            'id',
-                                            '<',
-                                            $user->id
-                                        );
-                                }
-                            );
-                    }
-                )
-                ->count()
-            + 1;
+        $currentRank = $gamificationService->rankAmong($user, $sameClass);
 
         return view(
             'gamification.leaderboard',
             compact(
                 'leaders',
                 'user',
-                'currentRank'
+                'currentRank',
+                'scope'
             )
         );
     }

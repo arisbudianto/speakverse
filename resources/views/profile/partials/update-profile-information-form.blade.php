@@ -99,6 +99,39 @@
 
         </div>
 
+        @if (($user->role ?? null) === 'teacher')
+            <div class="rounded-2xl border border-cyan-200 bg-cyan-50 px-5 py-4 text-sm text-cyan-800">
+                Kelas dan jurusan yang diampu diatur di menu Admin → Guru.
+                Satu guru dapat mengampu beberapa jurusan dan kelas berbeda.
+            </div>
+            @if ($user->relationLoaded('teachingAssignments') || method_exists($user, 'teachingAssignments'))
+                @php $ampu = $user->teachingAssignments ?? collect(); @endphp
+                @if ($ampu->count())
+                    <div class="rounded-2xl border border-slate-200 p-4">
+                        <p class="mb-2 text-sm font-bold">Kelas yang diampu</p>
+                        <ul class="space-y-1 text-sm text-slate-600">
+                            @foreach ($ampu as $row)
+                                <li>{{ $row->school }} — {{ $row->major }} — {{ $row->grade }} {{ $row->parallel }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+            @endif
+        @endif
+
+        @include('partials.school-major-grade-fields', [
+            'schools' => $schools ?? config('schools', []),
+            'selectedSchool' => old('school', $user->school),
+            'selectedMajor' => old('major', $user->major),
+            'selectedGrade' => old('grade', $user->grade),
+            'selectedParallel' => old('parallel', $user->parallel),
+            'required' => true,
+            'showMajor' => ($user->role ?? null) !== 'teacher',
+            'showClassFields' => ! in_array($user->role ?? null, ['teacher', 'admin'], true),
+            'labelClass' => 'block mb-3 text-sm font-bold text-slate-700 dark:text-slate-300',
+            'inputClass' => 'w-full px-5 py-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all duration-200',
+        ])
+
         <!-- BUTTON -->
         <div class="flex items-center gap-4 pt-2">
 

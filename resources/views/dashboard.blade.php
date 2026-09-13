@@ -679,6 +679,25 @@
         </section>
 
 
+        <div class="mb-8 grid gap-4 sm:grid-cols-2">
+            <a href="{{ route('gamification.leaderboard', ['scope' => 'class']) }}"
+                style="display:block;border-radius:24px;background:#fff;border:1px solid #e2e8f0;padding:20px;text-decoration:none;">
+                <p style="margin:0;font-size:13px;font-weight:700;color:#64748b;">Peringkat Kelas</p>
+                <p style="margin:8px 0 0;font-size:28px;font-weight:900;color:#0f172a;">
+                    #{{ $gamification['class_rank'] ?? '-' }}
+                    <span style="font-size:14px;font-weight:600;color:#64748b;">dari {{ $gamification['classmates'] ?? 0 }} siswa</span>
+                </p>
+            </a>
+            <a href="{{ route('gamification.leaderboard', ['scope' => 'school']) }}"
+                style="display:block;border-radius:24px;background:#fff;border:1px solid #e2e8f0;padding:20px;text-decoration:none;">
+                <p style="margin:0;font-size:13px;font-weight:700;color:#64748b;">Peringkat Sekolah</p>
+                <p style="margin:8px 0 0;font-size:28px;font-weight:900;color:#0f172a;">
+                    #{{ $gamification['school_rank'] ?? '-' }}
+                    <span style="font-size:14px;font-weight:600;color:#64748b;">dari {{ $gamification['schoolmates'] ?? 0 }} siswa</span>
+                </p>
+            </a>
+        </div>
+
         {{-- ========================================================= --}}
         {{-- GAMIFICATION SUMMARY --}}
         {{-- ========================================================= --}}

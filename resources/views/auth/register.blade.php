@@ -207,6 +207,90 @@
         </div>
 
 
+        {{-- SCHOOL --}}
+        <div class="sv-field">
+            <label for="school" class="sv-label">Sekolah</label>
+            <select
+                id="school"
+                name="school"
+                required
+                class="sv-input"
+            >
+                <option value="">Pilih sekolah</option>
+                @foreach (($schools ?? []) as $schoolName => $majors)
+                    <option value="{{ $schoolName }}" @selected(old('school') === $schoolName)>
+                        {{ $schoolName }}
+                    </option>
+                @endforeach
+            </select>
+            @error('school')
+                <p class="sv-field-error">{{ $message }}</p>
+            @enderror
+        </div>
+
+
+        {{-- MAJOR --}}
+        <div class="sv-field">
+            <label for="major" class="sv-label">Jurusan</label>
+            <select
+                id="major"
+                name="major"
+                required
+                class="sv-input"
+                @disabled(! old('school'))
+            >
+                <option value="">Pilih sekolah terlebih dahulu</option>
+            </select>
+            @error('major')
+                <p class="sv-field-error">{{ $message }}</p>
+            @enderror
+        </div>
+
+
+        {{-- GRADE --}}
+        <div class="sv-field">
+            <label for="grade" class="sv-label">Kelas</label>
+            <select
+                id="grade"
+                name="grade"
+                required
+                class="sv-input"
+            >
+                <option value="">Pilih kelas</option>
+                @foreach (['X', 'XI', 'XII'] as $grade)
+                    <option value="{{ $grade }}" @selected(old('grade') === $grade)>
+                        {{ $grade }}
+                    </option>
+                @endforeach
+            </select>
+            @error('grade')
+                <p class="sv-field-error">{{ $message }}</p>
+            @enderror
+        </div>
+
+
+        {{-- PARALLEL --}}
+        <div class="sv-field">
+            <label for="parallel" class="sv-label">Paralel</label>
+            <select
+                id="parallel"
+                name="parallel"
+                required
+                class="sv-input"
+            >
+                <option value="">Pilih paralel</option>
+                @foreach (['A', 'B', 'C', 'D'] as $parallel)
+                    <option value="{{ $parallel }}" @selected(old('parallel') === $parallel)>
+                        {{ $parallel }}
+                    </option>
+                @endforeach
+            </select>
+            @error('parallel')
+                <p class="sv-field-error">{{ $message }}</p>
+            @enderror
+        </div>
+
+
         {{-- PASSWORD --}}
         <div class="sv-field">
 
@@ -366,5 +450,46 @@
         </a>
 
     </p>
+
+    <script>
+        (function () {
+            const schools = @json($schools ?? []);
+            const schoolSelect = document.getElementById('school');
+            const majorSelect = document.getElementById('major');
+            const oldMajor = @json(old('major'));
+
+            function fillMajors(schoolName, selectedMajor) {
+                const majors = schools[schoolName] || [];
+                majorSelect.innerHTML = '';
+
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = majors.length
+                    ? 'Pilih jurusan'
+                    : 'Pilih sekolah terlebih dahulu';
+                majorSelect.appendChild(placeholder);
+
+                majors.forEach(function (major) {
+                    const option = document.createElement('option');
+                    option.value = major;
+                    option.textContent = major;
+                    if (selectedMajor && selectedMajor === major) {
+                        option.selected = true;
+                    }
+                    majorSelect.appendChild(option);
+                });
+
+                majorSelect.disabled = majors.length === 0;
+            }
+
+            schoolSelect.addEventListener('change', function () {
+                fillMajors(schoolSelect.value, '');
+            });
+
+            if (schoolSelect.value) {
+                fillMajors(schoolSelect.value, oldMajor);
+            }
+        })();
+    </script>
 
 </x-guest-layout>
