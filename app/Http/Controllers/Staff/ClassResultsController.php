@@ -111,6 +111,8 @@ class ClassResultsController extends Controller
         ];
         $countSkill = ['listening' => 0, 'reading' => 0, 'writing' => 0, 'speaking' => 0, 'pretest' => 0, 'posttest' => 0];
         $bands = ['belum' => 0, 'berkembang' => 0, 'mahir' => 0];
+        $weeklyBucket = [];
+        $remedialStudents = [];
 
         foreach ($students as $student) {
             $userSubs = $submissions->get($student->id, collect());
@@ -149,6 +151,37 @@ class ClassResultsController extends Controller
 
             $sum['xp'] += (int) $student->xp;
 
+            foreach ($userSubs as $sub) {
+                $when = $sub->submitted_at ?? $sub->created_at ?? null;
+                if (!$when) {
+                    continue;
+                }
+                $weekKey = \Carbon\Carbon::parse($when)->startOfWeek()->format('Y-m-d');
+                if (!isset($weeklyBucket[$weekKey])) {
+                    $weeklyBucket[$weekKey] = ['n' => 0, 'sum' => 0];
+                }
+                if ($sub->final_score !== null) {
+                    $weeklyBucket[$weekKey]['n']++;
+                    $weeklyBucket[$weekKey]['sum'] += (float) $sub->final_score;
+                }
+            }
+
+            $weakSkills = [];
+            foreach ($skills as $skillName => $skillScore) {
+                if ($skillScore !== null && $skillScore < 70) {
+                    $weakSkills[] = $skillName;
+                }
+            }
+            if ($avgFour === null || $weakSkills !== []) {
+                $remedialStudents[] = [
+                    'name' => $student->name,
+                    'weak_skills' => $avgFour === null ? ['belum mengerjakan'] : $weakSkills,
+                    'reason' => $avgFour === null
+                        ? 'Belum ada skor AI/tes yang terekam.'
+                        : 'Skor di bawah 70 pada: ' . implode(', ', $weakSkills),
+                ];
+            }
+
             $rows[] = [
                 'name' => $student->name,
                 'email' => $student->email,
@@ -165,6 +198,58 @@ class ClassResultsController extends Controller
                 'pretest_avg' => $pre !== null ? round($pre, 1) : null,
                 'posttest_avg' => $post !== null ? round($post, 1) : null,
                 'completed_lessons' => $completed,
+            ];
+        }
+
+        ksort($weeklyBucket);
+        $weeklyLabels = [];
+        $weeklyScores = [];
+        foreach ($weeklyBucket as $weekKey => $bucket) {
+            $weeklyLabels[] = \Carbon\Carbon::parse($weekKey)->isoFormat('D MMM');
+            $weeklyScores[] = $bucket['n'] > 0 ? round($bucket['sum'] / $bucket['n'], 1) : 0;
+        }
+
+        $weakClassSkills = [];
+        foreach (['listening', 'reading', 'writing', 'speaking'] as $skillName) {
+            if ($countSkill[$skillName] > 0) {
+                $avgSkill = round($sum[$skillName] / $countSkill[$skillName], 1);
+                if ($avgSkill < 70) {
+                    $weakClassSkills[$skillName] = $avgSkill;
+                }
+            }
+        }
+
+        $skillAdvice = [
+            'listening' => 'Remedial listening: ulang audio pendek 1–2 menit, latihan soal detail (angka, nama, langkah), lalu kuis lisan 5 butir.',
+            'reading' => 'Remedial reading: teks 80–120 kata, tandai kata kunci, latihan main idea + referensi kata ganti.',
+            'writing' => 'Remedial writing: kerangka 3 paragraf, tulis ulang 80 kata, fokus tugas (bukan meniru soal) dan mechanics.',
+            'speaking' => 'Remedial speaking: rekam 30–45 detik, cek relevansi jawaban, latihan pelafalan 5 frasa target.',
+            'belum mengerjakan' => 'Siswa belum submit. Beri batas waktu Pre-Test/Unit dan dampingi login pertama.',
+        ];
+
+        $remediations = [];
+        if ($weakClassSkills !== []) {
+            foreach ($weakClassSkills as $skillName => $avgSkill) {
+                $remediations[] = [
+                    'title' => 'Kelas lemah di ' . $skillName . ' (rata-rata ' . $avgSkill . ')',
+                    'action' => $skillAdvice[$skillName],
+                ];
+            }
+        }
+        foreach ($remedialStudents as $item) {
+            $actions = [];
+            foreach ($item['weak_skills'] as $weakSkill) {
+                $actions[] = $skillAdvice[$weakSkill] ?? $skillAdvice['belum mengerjakan'];
+            }
+            $remediations[] = [
+                'title' => $item['name'] . ' — ' . $item['reason'],
+                'action' => implode(' ', array_unique($actions)),
+            ];
+        }
+        if ($remediations === []) {
+            $remediations[] = [
+                'title' => 'Belum ada rekomendasi khusus',
+                'action' => 'Nilai kelas masih terbatas atau sudah di atas 70. Lanjut pengayaan teks/dialog sesuai unit berjalan.',
             ];
         }
 
@@ -194,6 +279,9 @@ class ClassResultsController extends Controller
                     ? round($avg('posttest') - $avg('pretest'), 1)
                     : null,
                 'bands' => $bands,
+                'weekly_labels' => $weeklyLabels,
+                'weekly_scores' => $weeklyScores,
+                'remediations' => $remediations,
             ],
         ];
     }

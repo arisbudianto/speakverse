@@ -66,6 +66,56 @@
         </p>
     </div>
 
+    <div class="mb-8 grid gap-6 lg:grid-cols-2">
+        <div class="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 class="mb-4 text-lg font-black">Tren mingguan</h2>
+            @if (!empty($analysis['weekly_labels']))
+                <canvas id="weeklyTrendChart" height="180"></canvas>
+            @else
+                <p class="text-sm text-slate-500">Belum ada cukup data bertanggal. Setelah 2–3 minggu submit, grafik akan terisi.</p>
+            @endif
+        </div>
+        <div class="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 class="mb-4 text-lg font-black">Rekomendasi remedial otomatis</h2>
+            <ul class="space-y-3 text-sm">
+                @foreach (($analysis['remediations'] ?? []) as $item)
+                    <li class="rounded-2xl bg-slate-50 p-4">
+                        <p class="font-bold text-slate-800">{{ $item['title'] }}</p>
+                        <p class="mt-1 text-slate-600">{{ $item['action'] }}</p>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+
+    @if (!empty($analysis['weekly_labels']))
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+        <script>
+            (function () {
+                const el = document.getElementById('weeklyTrendChart');
+                if (!el || typeof Chart === 'undefined') return;
+                new Chart(el, {
+                    type: 'line',
+                    data: {
+                        labels: @json($analysis['weekly_labels']),
+                        datasets: [{
+                            label: 'Rata-rata skor',
+                            data: @json($analysis['weekly_scores']),
+                            borderColor: '#0e7490',
+                            backgroundColor: 'rgba(14,116,144,.15)',
+                            tension: .3,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        plugins: { legend: { display: false } },
+                        scales: { y: { suggestedMin: 0, suggestedMax: 100 } }
+                    }
+                });
+            })();
+        </script>
+    @endif
+
     <div class="overflow-x-auto rounded-[28px] border border-slate-200 bg-white shadow-sm">
         <table class="min-w-full text-left text-sm">
             <thead class="bg-slate-50 font-bold text-slate-500">
