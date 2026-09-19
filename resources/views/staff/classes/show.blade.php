@@ -124,17 +124,17 @@
                         <td class="whitespace-nowrap px-4 py-2.5">
                             <div x-show="!editing" class="flex gap-1.5">
                                 <button type="button" @click="editing = true"
-                                    class="rounded-lg bg-cyan-100 px-4 py-2 font-bold text-cyan-800 hover:bg-cyan-200">Edit</button>
+                                    class="rounded-md bg-cyan-100 whitespace-nowrap px-3.5 py-1.5 text-xs font-semibold text-cyan-800 hover:bg-cyan-200">Edit</button>
                                 <button type="submit" form="delete-form-{{ $student->id }}"
-                                    class="rounded-lg bg-red-500 px-4 py-2 font-bold text-white hover:bg-red-600">Hapus</button>
+                                    class="rounded-md bg-red-500 whitespace-nowrap px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-red-600">Hapus</button>
                             </div>
                             <div x-show="editing" class="flex gap-1.5">
                                 <button type="submit" form="update-form-{{ $student->id }}"
-                                    class="rounded-lg bg-emerald-200 px-4 py-2 font-bold text-emerald-800 hover:bg-emerald-300">Simpan</button>
+                                    class="rounded-md bg-emerald-200 whitespace-nowrap px-3.5 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-300">Simpan</button>
                                 <button type="button" @click="editing = false"
-                                    class="rounded-lg bg-slate-200 px-4 py-2 font-bold text-slate-700 hover:bg-slate-300">Batal</button>
+                                    class="rounded-md bg-slate-200 whitespace-nowrap px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-300">Batal</button>
                                 <button type="submit" form="delete-form-{{ $student->id }}"
-                                    class="rounded-lg bg-red-500 px-4 py-2 font-bold text-white hover:bg-red-600">Hapus</button>
+                                    class="rounded-md bg-red-500 whitespace-nowrap px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-red-600">Hapus</button>
                             </div>
                         </td>
                     </tr>
