@@ -57,51 +57,87 @@
         </div>
     </div>
 
-    <div class="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
+    <div class="overflow-x-auto rounded-[28px] border border-slate-200 bg-white shadow-sm">
         <table class="min-w-full text-left">
             <thead class="bg-slate-50 text-sm font-bold text-slate-500">
                 <tr>
-                    <th class="px-5 py-4">Nama</th>
-                    <th class="px-5 py-4">Email</th>
-                    <th class="px-5 py-4">Aksi</th>
+                    <th class="whitespace-nowrap px-5 py-4">Nama</th>
+                    <th class="whitespace-nowrap px-5 py-4">Email</th>
+                    <th class="whitespace-nowrap px-5 py-4">Kelas</th>
+                    <th class="whitespace-nowrap px-5 py-4">Password</th>
+                    <th class="whitespace-nowrap px-5 py-4">Aksi</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse ($students as $student)
-                    <tr class="border-t border-slate-100 align-top">
-                        <td class="px-5 py-4" colspan="3">
-                            <form method="POST" action="{{ route('staff.classes.students.update', $student) }}" class="grid gap-3 lg:grid-cols-6">
+                    <tr x-data="{ editing: false }" class="border-t border-slate-100 align-middle">
+                        <td class="hidden">
+                            <form id="update-form-{{ $student->id }}" method="POST" action="{{ route('staff.classes.students.update', $student) }}">
                                 @csrf
                                 @method('PUT')
-                                <input name="name" value="{{ $student->name }}" class="rounded-xl border-slate-200 px-3 py-2 lg:col-span-2">
-                                <input name="email" value="{{ $student->email }}" class="rounded-xl border-slate-200 px-3 py-2 lg:col-span-2">
-                                <select name="grade" class="rounded-xl border-slate-200 px-3 py-2">
-                                    @foreach (['X','XI','XII'] as $g)
-                                        <option value="{{ $g }}" @selected($student->grade === $g)>{{ $g }}</option>
-                                    @endforeach
-                                </select>
-                                <select name="parallel" class="rounded-xl border-slate-200 px-3 py-2">
-                                    @foreach (['A','B','C','D'] as $p)
-                                        <option value="{{ $p }}" @selected($student->parallel === $p)>{{ $p }}</option>
-                                    @endforeach
-                                </select>
                                 <input type="hidden" name="school" value="{{ $student->school }}">
                                 <input type="hidden" name="major" value="{{ $student->major }}">
-                                <input name="password" placeholder="Password baru (opsional)" class="rounded-xl border-slate-200 px-3 py-2 lg:col-span-3">
-                                                                <div class="flex gap-3 lg:col-span-3">
-                                    <button class="px-4 py-2 rounded-lg bg-emerald-200 text-emerald-800 font-bold hover:bg-emerald-300">Simpan</button>
-                                    <button type="submit" form="delete-form-{{ $student->id }}" class="px-4 py-2 rounded-lg bg-red-500 text-white font-bold hover:bg-red-600">Hapus</button>
-                                </div>
                             </form>
-                            <form id="delete-form-{{ $student->id }}" method="POST" action="{{ route('staff.classes.students.destroy', $student) }}" onsubmit="return confirm('Hapus siswa ini?')" class="hidden">
+                            <form id="delete-form-{{ $student->id }}" method="POST" action="{{ route('staff.classes.students.destroy', $student) }}" onsubmit="return confirm('Hapus siswa ini?')">
                                 @csrf
                                 @method('DELETE')
                             </form>
                         </td>
+
+                        <td class="whitespace-nowrap px-5 py-4">
+                            <span x-show="!editing">{{ $student->name }}</span>
+                            <input x-show="editing" form="update-form-{{ $student->id }}" name="name" value="{{ $student->name }}"
+                                class="w-full min-w-[180px] rounded-xl border-slate-200 px-3 py-2">
+                        </td>
+
+                        <td class="whitespace-nowrap px-5 py-4">
+                            <span x-show="!editing">{{ $student->email }}</span>
+                            <input x-show="editing" form="update-form-{{ $student->id }}" name="email" value="{{ $student->email }}"
+                                class="w-full min-w-[220px] rounded-xl border-slate-200 px-3 py-2">
+                        </td>
+
+                        <td class="whitespace-nowrap px-5 py-4">
+                            <span x-show="!editing">{{ $student->grade }} {{ $student->parallel }}</span>
+                            <div x-show="editing" class="flex gap-2">
+                                <select form="update-form-{{ $student->id }}" name="grade" class="rounded-xl border-slate-200 px-2 py-2">
+                                    @foreach (['X','XI','XII'] as $g)
+                                        <option value="{{ $g }}" @selected($student->grade === $g)>{{ $g }}</option>
+                                    @endforeach
+                                </select>
+                                <select form="update-form-{{ $student->id }}" name="parallel" class="rounded-xl border-slate-200 px-2 py-2">
+                                    @foreach (['A','B','C','D'] as $p)
+                                        <option value="{{ $p }}" @selected($student->parallel === $p)>{{ $p }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </td>
+
+                        <td class="whitespace-nowrap px-5 py-4">
+                            <span x-show="!editing" class="text-slate-400">••••••••</span>
+                            <input x-show="editing" form="update-form-{{ $student->id }}" name="password" placeholder="Password baru (opsional)"
+                                class="w-full min-w-[180px] rounded-xl border-slate-200 px-3 py-2">
+                        </td>
+
+                        <td class="whitespace-nowrap px-5 py-4">
+                            <div x-show="!editing" class="flex gap-2">
+                                <button type="button" @click="editing = true"
+                                    class="rounded-lg bg-cyan-100 px-4 py-2 font-bold text-cyan-800 hover:bg-cyan-200">Edit</button>
+                                <button type="submit" form="delete-form-{{ $student->id }}"
+                                    class="rounded-lg bg-red-500 px-4 py-2 font-bold text-white hover:bg-red-600">Hapus</button>
+                            </div>
+                            <div x-show="editing" class="flex gap-2">
+                                <button type="submit" form="update-form-{{ $student->id }}"
+                                    class="rounded-lg bg-emerald-200 px-4 py-2 font-bold text-emerald-800 hover:bg-emerald-300">Simpan</button>
+                                <button type="button" @click="editing = false"
+                                    class="rounded-lg bg-slate-200 px-4 py-2 font-bold text-slate-700 hover:bg-slate-300">Batal</button>
+                                <button type="submit" form="delete-form-{{ $student->id }}"
+                                    class="rounded-lg bg-red-500 px-4 py-2 font-bold text-white hover:bg-red-600">Hapus</button>
+                            </div>
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="3" class="px-5 py-10 text-center text-slate-500">Belum ada siswa di kelas ini.</td>
+                        <td colspan="5" class="px-5 py-10 text-center text-slate-500">Belum ada siswa di kelas ini.</td>
                     </tr>
                 @endforelse
             </tbody>
