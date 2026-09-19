@@ -52,7 +52,10 @@
                 <input name="name" required placeholder="Nama lengkap" class="w-full rounded-2xl border-slate-200 px-4 py-3">
                 <input name="email" type="email" required placeholder="Email" class="w-full rounded-2xl border-slate-200 px-4 py-3">
                 <input name="password" placeholder="Password (opsional)" class="w-full rounded-2xl border-slate-200 px-4 py-3">
-                <button class="rounded-2xl bg-slate-900 px-6 py-3 font-bold text-white">Tambah</button>
+                <button type="submit"
+                    style="display:inline-flex;align-items:center;background:#0f172a;color:#fff;font-weight:700;font-size:14px;padding:10px 20px;border-radius:16px;border:none;cursor:pointer;">
+                    Tambah
+                </button>
             </form>
         </div>
     </div>
@@ -61,11 +64,11 @@
         <table class="min-w-full text-left">
             <thead class="bg-slate-50 text-sm font-bold text-slate-500">
                 <tr>
-                    <th class="whitespace-nowrap px-5 py-4">Nama</th>
-                    <th class="whitespace-nowrap px-5 py-4">Email</th>
-                    <th class="whitespace-nowrap px-5 py-4">Kelas</th>
-                    <th class="whitespace-nowrap px-5 py-4">Password</th>
-                    <th class="whitespace-nowrap px-5 py-4">Aksi</th>
+                    <th class="whitespace-nowrap px-4 py-3">Nama</th>
+                    <th class="whitespace-nowrap px-4 py-3">Email</th>
+                    <th class="whitespace-nowrap px-4 py-3">Kelas</th>
+                    <th class="whitespace-nowrap px-4 py-3">Password</th>
+                    <th class="whitespace-nowrap px-4 py-3">Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -84,21 +87,21 @@
                             </form>
                         </td>
 
-                        <td class="whitespace-nowrap px-5 py-4">
+                        <td class="whitespace-nowrap px-4 py-2.5">
                             <span x-show="!editing">{{ $student->name }}</span>
                             <input x-show="editing" form="update-form-{{ $student->id }}" name="name" value="{{ $student->name }}"
                                 class="w-full min-w-[180px] rounded-xl border-slate-200 px-3 py-2">
                         </td>
 
-                        <td class="whitespace-nowrap px-5 py-4">
+                        <td class="whitespace-nowrap px-4 py-2.5">
                             <span x-show="!editing">{{ $student->email }}</span>
                             <input x-show="editing" form="update-form-{{ $student->id }}" name="email" value="{{ $student->email }}"
                                 class="w-full min-w-[220px] rounded-xl border-slate-200 px-3 py-2">
                         </td>
 
-                        <td class="whitespace-nowrap px-5 py-4">
+                        <td class="whitespace-nowrap px-4 py-2.5">
                             <span x-show="!editing">{{ $student->grade }} {{ $student->parallel }}</span>
-                            <div x-show="editing" class="flex gap-2">
+                            <div x-show="editing" class="flex gap-1.5">
                                 <select form="update-form-{{ $student->id }}" name="grade" class="rounded-xl border-slate-200 px-2 py-2">
                                     @foreach (['X','XI','XII'] as $g)
                                         <option value="{{ $g }}" @selected($student->grade === $g)>{{ $g }}</option>
@@ -112,20 +115,20 @@
                             </div>
                         </td>
 
-                        <td class="whitespace-nowrap px-5 py-4">
+                        <td class="whitespace-nowrap px-4 py-2.5">
                             <span x-show="!editing" class="text-slate-400">••••••••</span>
                             <input x-show="editing" form="update-form-{{ $student->id }}" name="password" placeholder="Password baru (opsional)"
                                 class="w-full min-w-[180px] rounded-xl border-slate-200 px-3 py-2">
                         </td>
 
-                        <td class="whitespace-nowrap px-5 py-4">
-                            <div x-show="!editing" class="flex gap-2">
+                        <td class="whitespace-nowrap px-4 py-2.5">
+                            <div x-show="!editing" class="flex gap-1.5">
                                 <button type="button" @click="editing = true"
                                     class="rounded-lg bg-cyan-100 px-4 py-2 font-bold text-cyan-800 hover:bg-cyan-200">Edit</button>
                                 <button type="submit" form="delete-form-{{ $student->id }}"
                                     class="rounded-lg bg-red-500 px-4 py-2 font-bold text-white hover:bg-red-600">Hapus</button>
                             </div>
-                            <div x-show="editing" class="flex gap-2">
+                            <div x-show="editing" class="flex gap-1.5">
                                 <button type="submit" form="update-form-{{ $student->id }}"
                                     class="rounded-lg bg-emerald-200 px-4 py-2 font-bold text-emerald-800 hover:bg-emerald-300">Simpan</button>
                                 <button type="button" @click="editing = false"
