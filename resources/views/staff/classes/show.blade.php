@@ -64,6 +64,7 @@
         <table class="min-w-full text-left">
             <thead class="bg-slate-50 text-sm font-bold text-slate-500">
                 <tr>
+                    <th class="whitespace-nowrap px-4 py-3">No</th>
                     <th class="whitespace-nowrap px-4 py-3">Nama</th>
                     <th class="whitespace-nowrap px-4 py-3">Email</th>
                     <th class="whitespace-nowrap px-4 py-3">Kelas</th>
@@ -86,6 +87,8 @@
                                 @method('DELETE')
                             </form>
                         </td>
+
+                        <td class="whitespace-nowrap px-4 py-2.5 text-slate-400">{{ $loop->iteration }}</td>
 
                         <td class="whitespace-nowrap px-4 py-2.5">
                             <span x-show="!editing">{{ $student->name }}</span>
@@ -140,7 +143,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="px-5 py-10 text-center text-slate-500">Belum ada siswa di kelas ini.</td>
+                        <td colspan="6" class="px-5 py-10 text-center text-slate-500">Belum ada siswa di kelas ini.</td>
                     </tr>
                 @endforelse
             </tbody>
