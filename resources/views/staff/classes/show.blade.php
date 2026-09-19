@@ -88,15 +88,15 @@
                                 <input type="hidden" name="school" value="{{ $student->school }}">
                                 <input type="hidden" name="major" value="{{ $student->major }}">
                                 <input name="password" placeholder="Password baru (opsional)" class="rounded-xl border-slate-200 px-3 py-2 lg:col-span-3">
-                                <div class="flex gap-3 lg:col-span-3">
-                                    <button class="font-bold text-cyan-600">Simpan</button>
+                                                                <div class="flex gap-3 lg:col-span-3">
+                                    <button class="px-4 py-2 rounded-lg bg-emerald-200 text-emerald-800 font-bold hover:bg-emerald-300">Simpan</button>
+                                </div>
                             </form>
-                            <form method="POST" action="{{ route('staff.classes.students.destroy', $student) }}" onsubmit="return confirm('Hapus siswa ini?')">
+                            <form method="POST" action="{{ route('staff.classes.students.destroy', $student) }}" onsubmit="return confirm('Hapus siswa ini?')" class="mt-2">
                                 @csrf
                                 @method('DELETE')
-                                <button class="font-bold text-red-500">Hapus</button>
+                                <button class="px-4 py-2 rounded-lg bg-red-500 text-white font-bold hover:bg-red-600">Hapus</button>
                             </form>
-                                </div>
                         </td>
                     </tr>
                 @empty
