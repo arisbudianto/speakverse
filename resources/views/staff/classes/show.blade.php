@@ -90,12 +90,12 @@
                                 <input name="password" placeholder="Password baru (opsional)" class="rounded-xl border-slate-200 px-3 py-2 lg:col-span-3">
                                                                 <div class="flex gap-3 lg:col-span-3">
                                     <button class="px-4 py-2 rounded-lg bg-emerald-200 text-emerald-800 font-bold hover:bg-emerald-300">Simpan</button>
+                                    <button type="submit" form="delete-form-{{ $student->id }}" class="px-4 py-2 rounded-lg bg-red-500 text-white font-bold hover:bg-red-600">Hapus</button>
                                 </div>
                             </form>
-                            <form method="POST" action="{{ route('staff.classes.students.destroy', $student) }}" onsubmit="return confirm('Hapus siswa ini?')" class="mt-2">
+                            <form id="delete-form-{{ $student->id }}" method="POST" action="{{ route('staff.classes.students.destroy', $student) }}" onsubmit="return confirm('Hapus siswa ini?')" class="hidden">
                                 @csrf
                                 @method('DELETE')
-                                <button class="px-4 py-2 rounded-lg bg-red-500 text-white font-bold hover:bg-red-600">Hapus</button>
                             </form>
                         </td>
                     </tr>
