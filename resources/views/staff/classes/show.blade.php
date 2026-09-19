@@ -124,17 +124,17 @@
                         <td class="whitespace-nowrap px-4 py-2.5">
                             <div x-show="!editing" class="flex gap-1.5">
                                 <button type="button" @click="editing = true"
-                                    class="rounded-md bg-cyan-100 whitespace-nowrap px-3.5 py-1.5 text-xs font-semibold text-cyan-800 hover:bg-cyan-200">Edit</button>
+                                    style="display:inline-block;background:#cffafe;color:#155e75;font-weight:600;font-size:12px;padding:6px 14px;border-radius:8px;border:none;cursor:pointer;white-space:nowrap;">Edit</button>
                                 <button type="submit" form="delete-form-{{ $student->id }}"
-                                    class="rounded-md bg-red-500 whitespace-nowrap px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-red-600">Hapus</button>
+                                    style="display:inline-block;background:#ef4444;color:#fff;font-weight:600;font-size:12px;padding:6px 14px;border-radius:8px;border:none;cursor:pointer;white-space:nowrap;">Hapus</button>
                             </div>
                             <div x-show="editing" class="flex gap-1.5">
                                 <button type="submit" form="update-form-{{ $student->id }}"
-                                    class="rounded-md bg-emerald-200 whitespace-nowrap px-3.5 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-300">Simpan</button>
+                                    style="display:inline-block;background:#a7f3d0;color:#065f46;font-weight:600;font-size:12px;padding:6px 14px;border-radius:8px;border:none;cursor:pointer;white-space:nowrap;">Simpan</button>
                                 <button type="button" @click="editing = false"
-                                    class="rounded-md bg-slate-200 whitespace-nowrap px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-300">Batal</button>
+                                    style="display:inline-block;background:#e2e8f0;color:#334155;font-weight:600;font-size:12px;padding:6px 14px;border-radius:8px;border:none;cursor:pointer;white-space:nowrap;">Batal</button>
                                 <button type="submit" form="delete-form-{{ $student->id }}"
-                                    class="rounded-md bg-red-500 whitespace-nowrap px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-red-600">Hapus</button>
+                                    style="display:inline-block;background:#ef4444;color:#fff;font-weight:600;font-size:12px;padding:6px 14px;border-radius:8px;border:none;cursor:pointer;white-space:nowrap;">Hapus</button>
                             </div>
                         </td>
                     </tr>
