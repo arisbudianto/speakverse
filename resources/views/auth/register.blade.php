@@ -257,7 +257,7 @@
                 class="sv-input"
             >
                 <option value="">Pilih kelas</option>
-                @foreach (['X', 'XI', 'XII'] as $grade)
+                @foreach (['X', 'XI', 'XII', 'S1'] as $grade)
                     <option value="{{ $grade }}" @selected(old('grade') === $grade)>
                         {{ $grade }}
                     </option>

@@ -37,7 +37,7 @@ class RegisteredUserController extends Controller
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'school' => ['required', 'string', Rule::in($schoolNames)],
             'major' => ['required', 'string', Rule::in($selectedMajors)],
-            'grade' => ['required', 'string', Rule::in(['X', 'XI', 'XII'])],
+            'grade' => ['required', 'string', Rule::in(['X', 'XI', 'XII', 'S1'])],
             'parallel' => ['required', 'string', Rule::in(['A', 'B', 'C', 'D'])],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
@@ -46,14 +46,17 @@ class RegisteredUserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'student',
             'school' => $request->school,
             'major' => $request->major,
             'grade' => $request->grade,
             'parallel' => $request->parallel,
         ]);
 
+        // 'role' bukan mass-assignable (lihat App\Models\User), jadi
+        // diset secara eksplisit di sini. Setiap akun yang mendaftar
+        // sendiri lewat form ini selalu berupa 'student'.
         $user->forceFill([
+            'role' => 'student',
             'email_verified_at' => now(),
         ])->save();
 

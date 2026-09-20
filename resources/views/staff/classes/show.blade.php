@@ -106,7 +106,7 @@
                             <span x-show="!editing">{{ $student->grade }} {{ $student->parallel }}</span>
                             <div x-show="editing" class="flex gap-1.5">
                                 <select form="update-form-{{ $student->id }}" name="grade" class="rounded-xl border-slate-200 px-2 py-2">
-                                    @foreach (['X','XI','XII'] as $g)
+                                    @foreach (['X','XI','XII','S1'] as $g)
                                         <option value="{{ $g }}" @selected($student->grade === $g)>{{ $g }}</option>
                                     @endforeach
                                 </select>

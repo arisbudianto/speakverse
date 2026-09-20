@@ -100,7 +100,7 @@ class TeacherController extends Controller
         return $request->validate([
             'school' => ['required', 'string', Rule::in(array_keys($schools))],
             'major' => ['required', 'string', Rule::in($majors)],
-            'grade' => ['required', 'string', Rule::in(['X', 'XI', 'XII'])],
+            'grade' => ['required', 'string', Rule::in(['X', 'XI', 'XII', 'S1'])],
             'parallel' => ['required', 'string', Rule::in(['A', 'B', 'C', 'D'])],
         ]);
     }

@@ -168,9 +168,11 @@ class ClassRosterController extends Controller
             }
 
             $student = User::query()->where('email', $email)->first();
+            // 'role' bukan mass-assignable (lihat App\Models\User),
+            // jadi tidak dimasukkan ke $payload dan diset secara
+            // eksplisit ke 'student' di bawah setelah fill()/new().
             $payload = [
                 'name' => $name,
-                'role' => 'student',
                 'school' => $school,
                 'major' => $major,
                 'grade' => $grade,
@@ -186,14 +188,18 @@ class ClassRosterController extends Controller
                 if ($password !== '') {
                     $payload['password'] = Hash::make($password);
                 }
-                $student->fill($payload)->save();
+                $student->fill($payload);
+                $student->role = 'student';
+                $student->save();
                 $updated++;
                 continue;
             }
 
             $payload['email'] = $email;
             $payload['password'] = Hash::make($password !== '' ? $password : 'Siswa2026!');
-            User::create($payload);
+            $newStudent = new User($payload);
+            $newStudent->role = 'student';
+            $newStudent->save();
             $created++;
         }
 
@@ -214,17 +220,20 @@ class ClassRosterController extends Controller
             'password' => ['nullable', 'string', 'min:8'],
         ]);
 
-        User::create([
+        // 'role' diset eksplisit setelah new() karena tidak lagi
+        // mass-assignable (lihat App\Models\User).
+        $student = new User([
             'name' => $validated['name'],
             'email' => strtolower($validated['email']),
             'password' => Hash::make($validated['password'] ?? 'Siswa2026!'),
-            'role' => 'student',
             'school' => $class['school'],
             'major' => $class['major'],
             'grade' => $class['grade'],
             'parallel' => $class['parallel'],
             'email_verified_at' => now(),
         ]);
+        $student->role = 'student';
+        $student->save();
 
         return back()->with('success', 'Siswa ditambahkan.');
     }
@@ -241,7 +250,7 @@ class ClassRosterController extends Controller
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'school' => ['required', Rule::in(array_keys($schools))],
             'major' => ['required', Rule::in($majors)],
-            'grade' => ['required', Rule::in(['X', 'XI', 'XII'])],
+            'grade' => ['required', Rule::in(['X', 'XI', 'XII', 'S1'])],
             'parallel' => ['required', Rule::in(['A', 'B', 'C', 'D'])],
             'password' => ['nullable', 'string', 'min:8'],
         ]);
@@ -318,7 +327,7 @@ class ClassRosterController extends Controller
         return $request->validate([
             'school' => ['required', Rule::in(array_keys($schools))],
             'major' => ['required', Rule::in($majors)],
-            'grade' => ['required', Rule::in(['X', 'XI', 'XII'])],
+            'grade' => ['required', Rule::in(['X', 'XI', 'XII', 'S1'])],
             'parallel' => ['required', Rule::in(['A', 'B', 'C', 'D'])],
         ]);
     }

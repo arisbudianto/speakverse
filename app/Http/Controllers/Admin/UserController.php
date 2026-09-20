@@ -76,7 +76,7 @@ class UserController extends Controller
                 'grade' => [
                     'nullable',
                     'string',
-                    Rule::in(['X', 'XI', 'XII']),
+                    Rule::in(['X', 'XI', 'XII', 'S1']),
                 ],
 
                 'parallel' => [
@@ -139,7 +139,13 @@ class UserController extends Controller
             ]
         );
 
-        User::create($validated);
+        // 'role' bukan mass-assignable secara default (lihat
+        // App\Models\User). forceFill() dipakai di sini karena route
+        // ini sudah dibatasi middleware 'admin', jadi hanya admin
+        // yang benar-benar login yang bisa mengubah role user lain.
+        (new User())
+            ->forceFill($validated)
+            ->save();
 
         return redirect()
             ->route('admin.users.index')
@@ -209,7 +215,7 @@ class UserController extends Controller
                 'grade' => [
                     'nullable',
                     'string',
-                    Rule::in(['X', 'XI', 'XII']),
+                    Rule::in(['X', 'XI', 'XII', 'S1']),
                 ],
 
                 'parallel' => [
@@ -273,7 +279,10 @@ class UserController extends Controller
             unset($validated['password']);
         }
 
-        $user->update($validated);
+        // Sama seperti store(): forceFill() dipakai karena route ini
+        // hanya bisa diakses admin, dan form ini memang dimaksudkan
+        // untuk bisa mengubah role user lain.
+        $user->forceFill($validated)->save();
 
         return redirect()
             ->route('admin.users.index')

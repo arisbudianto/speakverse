@@ -47,4 +47,7 @@ return [
         'Akuntansi dan Keuangan Lembaga',
         'Bisnis Daring dan Pemasaran',
     ],
+    'Universitas Sebelas Maret' => [
+        'Pendidikan Teknik Informatika dan Komputer',
+    ],
 ];

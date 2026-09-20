@@ -43,7 +43,7 @@
     <label for="grade" class="{{ $labelClass }}">Kelas</label>
     <select id="grade" name="grade" @required($required) class="{{ $inputClass }}">
         <option value="">Pilih kelas</option>
-        @foreach (['X', 'XI', 'XII'] as $grade)
+        @foreach (['X', 'XI', 'XII', 'S1'] as $grade)
             <option value="{{ $grade }}" @selected($selectedGrade === $grade)>
                 {{ $grade }}
             </option>

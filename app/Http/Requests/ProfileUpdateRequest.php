@@ -34,7 +34,7 @@ class ProfileUpdateRequest extends FormRequest
             ],
             'school' => [$role === 'admin' ? 'nullable' : 'required', 'string', Rule::in($schoolNames)],
             'major' => [$isStaff ? 'nullable' : 'required', 'string', Rule::in($majors)],
-            'grade' => [$isStaff ? 'nullable' : 'required', 'string', Rule::in(['X', 'XI', 'XII'])],
+            'grade' => [$isStaff ? 'nullable' : 'required', 'string', Rule::in(['X', 'XI', 'XII', 'S1'])],
             'parallel' => [$isStaff ? 'nullable' : 'required', 'string', Rule::in(['A', 'B', 'C', 'D'])],
         ];
     }

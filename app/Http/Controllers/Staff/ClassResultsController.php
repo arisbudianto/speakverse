@@ -294,7 +294,7 @@ class ClassResultsController extends Controller
         return $request->validate([
             'school' => ['required', Rule::in(array_keys($schools))],
             'major' => ['required', Rule::in($majors)],
-            'grade' => ['required', Rule::in(['X', 'XI', 'XII'])],
+            'grade' => ['required', Rule::in(['X', 'XI', 'XII', 'S1'])],
             'parallel' => ['required', Rule::in(['A', 'B', 'C', 'D'])],
         ]);
     }
