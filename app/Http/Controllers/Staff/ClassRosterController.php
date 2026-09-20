@@ -152,7 +152,7 @@ class ClassRosterController extends Controller
             $grade = strtoupper(trim((string) ($row[$map['kelas'] ?? 5] ?? '')) ?: $class['grade']);
             $parallel = strtoupper(trim((string) ($row[$map['paralel'] ?? 6] ?? '')) ?: $class['parallel']);
 
-            if (! $this->isAllowedMajor($school, $major) || ! in_array($grade, ['X', 'XI', 'XII'], true) || ! in_array($parallel, ['A', 'B', 'C', 'D'], true)) {
+            if (! $this->isAllowedMajor($school, $major) || ! in_array($grade, ['X', 'XI', 'XII', 'S1'], true) || ! in_array($parallel, ['A', 'B', 'C', 'D'], true)) {
                 $skipped++;
                 continue;
             }
