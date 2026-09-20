@@ -24,14 +24,14 @@ class ClassRosterController extends Controller
         return view('staff.classes.index', [
             'classes' => $classes,
             'schools' => config('schools', []),
-            'canManageOwnClasses' => $user->role === 'teacher',
+            'canManageOwnClasses' => in_array($user->role, ['teacher', 'admin'], true),
         ]);
     }
 
     public function storeAssignment(Request $request): RedirectResponse
     {
         $user = Auth::user();
-        abort_unless($user->role === 'teacher', 403);
+        abort_unless(in_array($user->role, ['teacher', 'admin'], true), 403);
 
         $validated = $this->validatedClass($request);
 
