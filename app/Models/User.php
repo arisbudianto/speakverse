@@ -14,12 +14,21 @@ class User extends Authenticatable
 
     /**
      * Atribut yang boleh diisi melalui mass assignment.
+     *
+     * 'role' dan seluruh atribut gamifikasi (xp, coins, level,
+     * current_streak, longest_streak) SENGAJA tidak dimasukkan ke
+     * sini. Atribut-atribut ini hanya boleh diubah melalui
+     * forceFill()/query builder update() di kode server yang
+     * tepercaya (mis. admin, seeder, GamificationService), bukan
+     * dari input pengguna secara langsung. Ini mencegah privilege
+     * escalation (mis. siswa mengubah role menjadi admin) maupun
+     * manipulasi XP/Coins jika suatu saat ada endpoint yang secara
+     * tidak sengaja melakukan mass assignment dari request().
      */
     protected $fillable = [
         'name',
         'email',
         'password',
-        'role',
         'google_id',
         'google_avatar',
         'nip',
@@ -27,13 +36,6 @@ class User extends Authenticatable
         'major',
         'grade',
         'parallel',
-
-        // Gamification
-        'xp',
-        'coins',
-        'level',
-        'current_streak',
-        'longest_streak',
         'last_activity_date',
     ];
 

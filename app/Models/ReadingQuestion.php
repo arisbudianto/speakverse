@@ -25,7 +25,26 @@ class ReadingQuestion extends Model
          * inference, vocabulary_in_context
          */
         'sub_skill',
+
+        /*
+        |--------------------------------------------------------------------------
+        | Modul 2 — Diagnostic Engine
+        |--------------------------------------------------------------------------
+        */
+        'error_if_wrong',
+        'error_labels_source',
+        'rationale',
+        'text_span',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            // Peta opsi salah -> kode error, mis.
+            // {"A": "lexical", "C": "inferential"}.
+            'error_if_wrong' => 'array',
+        ];
+    }
 
     public function material()
     {

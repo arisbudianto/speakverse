@@ -1444,6 +1444,106 @@
 
                                 </div>
 
+
+                                <div class="rqe-settings-divider"></div>
+
+
+                                {{-- ================================= --}}
+                                {{-- MODUL 2 — DIAGNOSTIC ENGINE (optional) --}}
+                                {{-- ================================= --}}
+                                <div class="rqe-field">
+
+                                    <div class="rqe-label-row">
+                                        <label class="rqe-label">
+                                            Error Classification
+                                        </label>
+                                    </div>
+
+                                    <p class="rqe-helper">
+                                        Optional. For each WRONG option,
+                                        pick why a student who picks it
+                                        is wrong. Leave "not labeled" if
+                                        unsure — that answer just won't
+                                        get an error label yet.
+                                    </p>
+
+                                </div>
+
+                                @php
+                                    $errorCodeLabels = [
+                                        'lexical' => 'Lexical (word meaning/collocation/form)',
+                                        'inferential' => 'Inferential (failed to infer from text)',
+                                        'syntactic' => 'Syntactic (wrong grammatical structure)',
+                                        'context_misconception' => 'Context Misconception (outside knowledge conflicts with text)',
+                                    ];
+                                    $existingMap = old('error_if_wrong', $question->error_if_wrong ?? []);
+                                @endphp
+
+                                @foreach (['a' => 'A', 'b' => 'B', 'c' => 'C', 'd' => 'D', 'e' => 'E'] as $optKey => $optLabel)
+                                    <div class="rqe-field">
+                                        <div class="rqe-label-row">
+                                            <label for="error_code_{{ $optKey }}" class="rqe-label">
+                                                If student picks "{{ $optLabel }}"…
+                                            </label>
+                                        </div>
+
+                                        <select
+                                            id="error_code_{{ $optKey }}"
+                                            name="error_code_{{ $optKey }}"
+                                            class="rqe-select @error('error_code_' . $optKey) rqe-control-error @enderror">
+
+                                            <option value="">— not labeled —</option>
+
+                                            @foreach ($errorCodeLabels as $code => $codeLabel)
+                                                <option value="{{ $code }}"
+                                                    @selected(($existingMap[$optLabel] ?? null) === $code)>
+                                                    {{ $codeLabel }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+
+                                        @error('error_code_' . $optKey)
+                                            <p class="rqe-error">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                @endforeach
+
+                                <div class="rqe-field">
+                                    <div class="rqe-label-row">
+                                        <label for="rationale" class="rqe-label">
+                                            Rationale (why the correct answer is correct)
+                                        </label>
+                                    </div>
+
+                                    <textarea
+                                        id="rationale"
+                                        name="rationale"
+                                        rows="2"
+                                        class="rqe-textarea @error('rationale') rqe-control-error @enderror">{{ old('rationale', $question->rationale) }}</textarea>
+
+                                    @error('rationale')
+                                        <p class="rqe-error">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                <div class="rqe-field">
+                                    <div class="rqe-label-row">
+                                        <label for="text_span" class="rqe-label">
+                                            Supporting Text Span (quote from the passage)
+                                        </label>
+                                    </div>
+
+                                    <textarea
+                                        id="text_span"
+                                        name="text_span"
+                                        rows="2"
+                                        class="rqe-textarea @error('text_span') rqe-control-error @enderror">{{ old('text_span', $question->text_span) }}</textarea>
+
+                                    @error('text_span')
+                                        <p class="rqe-error">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
                             </div>
 
                         </section>

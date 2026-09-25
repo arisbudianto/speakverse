@@ -65,48 +65,55 @@ class TrialAccountSeeder extends Seeder
             ],
         ];
 
-        foreach ($schools as $pack) {
-            $teacher = User::query()->updateOrCreate(
-                ['email' => $pack['teacher']['email']],
-                [
-                    'name' => $pack['teacher']['name'],
-                    'password' => $teacherPassword,
-                    'role' => 'teacher',
-                    'nip' => $pack['teacher']['nip'],
-                    'school' => $pack['teacher']['school'],
-                    'major' => null,
-                    'grade' => null,
-                    'parallel' => null,
-                    'email_verified_at' => now(),
-                ]
-            );
-
-            TeacherClassAssignment::query()->firstOrCreate([
-                'user_id' => $teacher->id,
-                'school' => $pack['teacher']['school'],
-                'major' => $pack['major'],
-                'grade' => $pack['grade'],
-                'parallel' => $pack['parallel'],
-            ]);
-
-            foreach ($pack['students'] as $student) {
-                User::query()->updateOrCreate(
-                    ['email' => $student['email']],
+        // 'role', 'xp', 'coins', dan 'level' tidak lagi mass-assignable
+        // (lihat App\Models\User). Seeder adalah kode tepercaya yang
+        // dijalankan developer, jadi User::unguarded() dipakai untuk
+        // mengizinkan mass assignment atribut-atribut tersebut khusus
+        // di dalam closure ini saja.
+        User::unguarded(function () use ($schools, $teacherPassword, $studentPassword) {
+            foreach ($schools as $pack) {
+                $teacher = User::query()->updateOrCreate(
+                    ['email' => $pack['teacher']['email']],
                     [
-                        'name' => $student['name'],
-                        'password' => $studentPassword,
-                        'role' => 'student',
+                        'name' => $pack['teacher']['name'],
+                        'password' => $teacherPassword,
+                        'role' => 'teacher',
+                        'nip' => $pack['teacher']['nip'],
                         'school' => $pack['teacher']['school'],
-                        'major' => $pack['major'],
-                        'grade' => $pack['grade'],
-                        'parallel' => $pack['parallel'],
+                        'major' => null,
+                        'grade' => null,
+                        'parallel' => null,
                         'email_verified_at' => now(),
-                        'xp' => 0,
-                        'coins' => 0,
-                        'level' => 1,
                     ]
                 );
+
+                TeacherClassAssignment::query()->firstOrCreate([
+                    'user_id' => $teacher->id,
+                    'school' => $pack['teacher']['school'],
+                    'major' => $pack['major'],
+                    'grade' => $pack['grade'],
+                    'parallel' => $pack['parallel'],
+                ]);
+
+                foreach ($pack['students'] as $student) {
+                    User::query()->updateOrCreate(
+                        ['email' => $student['email']],
+                        [
+                            'name' => $student['name'],
+                            'password' => $studentPassword,
+                            'role' => 'student',
+                            'school' => $pack['teacher']['school'],
+                            'major' => $pack['major'],
+                            'grade' => $pack['grade'],
+                            'parallel' => $pack['parallel'],
+                            'email_verified_at' => now(),
+                            'xp' => 0,
+                            'coins' => 0,
+                            'level' => 1,
+                        ]
+                    );
+                }
             }
-        }
+        });
     }
 }

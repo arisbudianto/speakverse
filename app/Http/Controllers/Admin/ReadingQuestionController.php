@@ -7,6 +7,7 @@ use App\Models\AssessmentAnswer;
 use App\Models\Lesson;
 use App\Models\ReadingMaterial;
 use App\Models\ReadingQuestion;
+use App\Services\Learning\DiagnosticEngine;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -142,6 +143,20 @@ class ReadingQuestionController extends Controller
 
             'sub_skill' =>
                 $validated['sub_skill'],
+
+            'error_if_wrong' =>
+                $this->buildErrorIfWrongMap($validated),
+
+            // Saran guru menyimpan lewat form ini = ditinjau manusia,
+            // walau sebelumnya berasal dari usulan AI.
+            'error_labels_source' =>
+                'manual',
+
+            'rationale' =>
+                $validated['rationale'] ?? null,
+
+            'text_span' =>
+                $validated['text_span'] ?? null,
         ]);
 
         return redirect()
@@ -371,6 +386,20 @@ class ReadingQuestionController extends Controller
 
             'sub_skill' =>
                 $validated['sub_skill'],
+
+            'error_if_wrong' =>
+                $this->buildErrorIfWrongMap($validated),
+
+            // Saran guru menyimpan lewat form ini = ditinjau manusia,
+            // walau sebelumnya berasal dari usulan AI.
+            'error_labels_source' =>
+                'manual',
+
+            'rationale' =>
+                $validated['rationale'] ?? null,
+
+            'text_span' =>
+                $validated['text_span'] ?? null,
         ]);
 
         return $this
@@ -472,6 +501,47 @@ class ReadingQuestionController extends Controller
                     'min:1',
                     'max:100',
                 ],
+
+                /*
+                |--------------------------------------------------------------------------
+                | Modul 2 — Diagnostic Engine (opsional)
+                |--------------------------------------------------------------------------
+                */
+
+                'rationale' => [
+                    'nullable',
+                    'string',
+                ],
+
+                'text_span' => [
+                    'nullable',
+                    'string',
+                ],
+
+                'error_code_a' => [
+                    'nullable',
+                    Rule::in(DiagnosticEngine::ERROR_CODES),
+                ],
+
+                'error_code_b' => [
+                    'nullable',
+                    Rule::in(DiagnosticEngine::ERROR_CODES),
+                ],
+
+                'error_code_c' => [
+                    'nullable',
+                    Rule::in(DiagnosticEngine::ERROR_CODES),
+                ],
+
+                'error_code_d' => [
+                    'nullable',
+                    Rule::in(DiagnosticEngine::ERROR_CODES),
+                ],
+
+                'error_code_e' => [
+                    'nullable',
+                    Rule::in(DiagnosticEngine::ERROR_CODES),
+                ],
             ],
             [
                 'question.required' =>
@@ -539,5 +609,28 @@ class ReadingQuestionController extends Controller
             'admin.reading-materials.index',
             $question->lesson_id
         );
+    }
+
+    /**
+     * Modul 2 — Diagnostic Engine: gabungkan error_code_a s.d.
+     * error_code_e dari form (UX per-opsi, lebih mudah daripada minta
+     * admin mengetik JSON manual) menjadi kolom error_if_wrong (JSON
+     * map opsi -> kode error). Opsi yang sama dengan correct_answer
+     * diabaikan (tidak masuk akal melabeli jawaban benar sebagai
+     * error).
+     */
+    private function buildErrorIfWrongMap(array $validated): ?array
+    {
+        $map = [];
+
+        foreach (['a' => 'A', 'b' => 'B', 'c' => 'C', 'd' => 'D', 'e' => 'E'] as $key => $label) {
+            $code = $validated['error_code_' . $key] ?? null;
+
+            if ($code && $label !== $validated['correct_answer']) {
+                $map[$label] = $code;
+            }
+        }
+
+        return $map === [] ? null : $map;
     }
 }

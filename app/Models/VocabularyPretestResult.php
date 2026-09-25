@@ -9,7 +9,9 @@ class VocabularyPretestResult extends Model
 {
     protected $fillable = [
         'user_id',
+        'quiz_session_id',
         'score',
+        'feedback',
     ];
 
     protected $casts = [

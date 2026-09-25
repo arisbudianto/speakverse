@@ -71,6 +71,7 @@ Route::get('/', function () {
 Route::middleware([
     'auth',
     'verified',
+    'force_password_change',
 ])->group(function () {
 
     /*
@@ -161,6 +162,56 @@ Route::middleware([
         '/missions/unit/{lesson}/reading/complete',
         [StudentReadingController::class, 'complete']
     )->name('student.reading.complete');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Modul 5 — In-Quiz Tutor UX (Tahap 5a: backend saja, belum ada UI
+    | yang memakai ini — quiz.blade.php masih pakai alur submit-sekali
+    | lama lewat /complete di atas sampai Tahap 5b).
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post(
+        '/missions/unit/{lesson}/reading/check',
+        [StudentReadingController::class, 'check']
+    )->name('student.reading.check');
+
+    Route::post(
+        '/missions/unit/{lesson}/reading/hint',
+        [StudentReadingController::class, 'hint']
+    )->name('student.reading.hint');
+
+    Route::post(
+        '/missions/unit/{lesson}/reading/finish',
+        [StudentReadingController::class, 'finish']
+    )->name('student.reading.finish');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Saran perbaikan Modul 1 — response_ms server & event abandon
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post(
+        '/missions/unit/{lesson}/reading/shown',
+        [StudentReadingController::class, 'markShown']
+    )->name('student.reading.shown');
+
+    Route::post(
+        '/missions/unit/{lesson}/reading/abandon',
+        [StudentReadingController::class, 'abandon']
+    )->name('student.reading.abandon');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Saran perbaikan Modul 5 — Halaman Pembahasan
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/missions/unit/{lesson}/reading/review/{submission}',
+        [StudentReadingController::class, 'review']
+    )->name('student.reading.review');
 
 
     /*
@@ -500,6 +551,54 @@ Route::middleware([
         '/vocabulary/pretest/submit',
         [VocabularyPretestController::class, 'submit']
     )->name('vocabulary.pretest.submit');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Modul 5 — In-Quiz Tutor UX (Vocabulary Pretest)
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post(
+        '/vocabulary/pretest/check',
+        [VocabularyPretestController::class, 'check']
+    )->name('vocabulary.pretest.check');
+
+    Route::post(
+        '/vocabulary/pretest/hint',
+        [VocabularyPretestController::class, 'hint']
+    )->name('vocabulary.pretest.hint');
+
+    Route::post(
+        '/vocabulary/pretest/finish',
+        [VocabularyPretestController::class, 'finish']
+    )->name('vocabulary.pretest.finish');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Saran perbaikan Modul 1 — response_ms server & event abandon
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post(
+        '/vocabulary/pretest/shown',
+        [VocabularyPretestController::class, 'markShown']
+    )->name('vocabulary.pretest.shown');
+
+    Route::post(
+        '/vocabulary/pretest/abandon',
+        [VocabularyPretestController::class, 'abandon']
+    )->name('vocabulary.pretest.abandon');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Saran perbaikan Modul 5 — Halaman Pembahasan
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/vocabulary/pretest/review/{result}',
+        [VocabularyPretestController::class, 'review']
+    )->name('vocabulary.pretest.review');
 });
 
 
@@ -593,9 +692,18 @@ Route::middleware([
         Route::resource(
             'vocabulary-pretests',
             AdminVocabularyPretestController::class
-        )->names(
-            'admin.vocabulary-pretests'
-        );
+        )->except(['show'])
+            ->parameters([
+                // Eksplisit disamakan dengan nama parameter di
+                // controller ($vocabularyPretest, camelCase) supaya
+                // implicit route model binding tidak ambigu dengan
+                // wildcard default Laravel yang snake_case
+                // ('vocabulary_pretest') untuk resource bertanda hubung.
+                'vocabulary-pretests' => 'vocabularyPretest',
+            ])
+            ->names(
+                'admin.vocabulary-pretests'
+            );
 
 
         /*
@@ -627,6 +735,14 @@ Route::middleware([
         Route::get('/classes/show', [ClassRosterController::class, 'show'])->name('staff.classes.show');
         Route::get('/classes/results', [ClassResultsController::class, 'show'])->name('staff.classes.results');
         Route::get('/classes/results/export', [ClassResultsController::class, 'export'])->name('staff.classes.results.export');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Modul 6b — Teacher HITL Override UI
+        |--------------------------------------------------------------------------
+        */
+        Route::post('/classes/overrides', [ClassResultsController::class, 'storeOverride'])->name('staff.classes.overrides.store');
+        Route::delete('/classes/overrides/{policy}', [ClassResultsController::class, 'destroyOverride'])->name('staff.classes.overrides.destroy');
         Route::post('/classes/import', [ClassRosterController::class, 'import'])->name('staff.classes.import');
         Route::post('/classes/students', [ClassRosterController::class, 'storeStudent'])->name('staff.classes.students.store');
         Route::put('/classes/students/{user}', [ClassRosterController::class, 'updateStudent'])->name('staff.classes.students.update');

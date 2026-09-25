@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Unit;
+use App\Models\VocabularyPretest;
 
 class LearningContentController extends Controller
 {
@@ -62,9 +63,11 @@ class LearningContentController extends Controller
             ->orderBy('order_number')
             ->get();
 
+        $vocabularyPretestCount = VocabularyPretest::query()->count();
+
         return view(
             'admin.learning.index',
-            compact('units')
+            compact('units', 'vocabularyPretestCount')
         );
     }
 }

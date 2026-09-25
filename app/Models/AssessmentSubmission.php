@@ -10,6 +10,7 @@ class AssessmentSubmission extends Model
         'user_id',
         'unit_id',
         'lesson_id',
+        'quiz_session_id',
         'type',
         'skill',
         'final_score',

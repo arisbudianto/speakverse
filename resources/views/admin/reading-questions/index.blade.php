@@ -702,6 +702,18 @@
                                                 Assigned
                                             </span>
                                         @endif
+
+                                        @if (! empty($question->error_if_wrong))
+                                            @if ($question->error_labels_source === 'ai_suggested')
+                                                <span class="rqb-badge" style="background:#fef3c7;color:#92400e;">
+                                                    🤖 AI Suggested — Review
+                                                </span>
+                                            @else
+                                                <span class="rqb-badge" style="background:#ede9fe;color:#5b21b6;">
+                                                    ✓ Error-labeled
+                                                </span>
+                                            @endif
+                                        @endif
                                     </div>
                                 </div>
 

@@ -789,6 +789,125 @@
                 font-size: 13px;
             }
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Modul 5 — In-Quiz Tutor UX
+        |--------------------------------------------------------------------------
+        */
+
+        .reading-quiz-page .rq-check-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .reading-quiz-page .rq-button-hint {
+            border-color: var(--border);
+            background: var(--card);
+            color: var(--accent-strong);
+        }
+
+        .reading-quiz-page .rq-button-hint:hover:not(:disabled) {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+        }
+
+        .reading-quiz-page .rq-checks-remaining {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--text-muted);
+        }
+
+        .reading-quiz-page .rq-feedback {
+            margin-top: 12px;
+            padding: 11px 13px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1.5;
+        }
+
+        .reading-quiz-page .rq-feedback.is-correct {
+            border: 1px solid rgba(5, 150, 105, 0.24);
+            background: var(--success-soft);
+            color: var(--success);
+        }
+
+        .reading-quiz-page .rq-feedback.is-incorrect {
+            border: 1px solid rgba(220, 38, 38, 0.24);
+            background: var(--danger-soft);
+            color: var(--danger);
+        }
+
+        .reading-quiz-page .rq-feedback.is-locked {
+            border: 1px solid var(--border);
+            background: var(--card-muted);
+            color: var(--text-muted);
+        }
+
+        .reading-quiz-page .rq-hint-panel {
+            margin-top: 12px;
+            padding: 13px 14px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--accent-soft);
+        }
+
+        .reading-quiz-page .rq-hint-label {
+            margin: 0 0 8px;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--accent-strong);
+        }
+
+        .reading-quiz-page .rq-hint-history {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .reading-quiz-page .rq-hint-item {
+            padding: 9px 11px;
+            border-radius: 10px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--text-soft);
+        }
+
+        .reading-quiz-page .rq-hint-item-level {
+            display: inline-block;
+            margin-bottom: 4px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: var(--accent-strong);
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 900;
+        }
+
+        .reading-quiz-page .rq-hint-socratic {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .reading-quiz-page .rq-hint-socratic-input {
+            width: 100%;
+            padding: 9px 11px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--card);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 12px;
+            resize: vertical;
+        }
     </style>
 
     <div class="reading-quiz-page">
@@ -995,6 +1114,57 @@
                                     hidden>
                                     Please select one answer before continuing.
                                 </div>
+
+                                {{-- MODUL 5 — In-Quiz Tutor UX --}}
+                                <div class="rq-check-row" data-check-row>
+                                    <button
+                                        type="button"
+                                        class="rq-button rq-button-primary"
+                                        data-check-btn>
+                                        Check
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="rq-button rq-button-hint"
+                                        data-hint-btn>
+                                        <svg
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                            aria-hidden="true">
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z">
+                                            </path>
+                                        </svg>
+                                        I need a hint
+                                    </button>
+
+                                    <span class="rq-checks-remaining" data-checks-remaining hidden></span>
+                                </div>
+
+                                <div class="rq-feedback" data-feedback hidden></div>
+
+                                <div class="rq-hint-panel" data-hint-panel hidden>
+                                    <p class="rq-hint-label" data-hint-error-label></p>
+                                    <div class="rq-hint-history" data-hint-history></div>
+                                    <div class="rq-hint-socratic" data-hint-socratic hidden>
+                                        <textarea
+                                            class="rq-hint-socratic-input"
+                                            data-socratic-input
+                                            rows="2"
+                                            placeholder="Tulis jawaban singkatmu di sini..."></textarea>
+                                        <button
+                                            type="button"
+                                            class="rq-button rq-button-secondary"
+                                            data-socratic-submit>
+                                            Kirim Jawaban
+                                        </button>
+                                    </div>
+                                </div>
                             </article>
                         @endforeach
                     </form>
@@ -1071,7 +1241,7 @@
                                 </svg>
 
                                 <span id="submitLabel">
-                                    Submit Quiz
+                                    Finish Quiz
                                 </span>
                             </button>
                         </div>
@@ -1102,7 +1272,7 @@
                         Quiz Completed
                     </h2>
 
-                    <p class="rq-result-description">
+                    <p class="rq-result-description" id="finalMessage">
                         Your reading result has been calculated and saved.
                     </p>
 
@@ -1119,6 +1289,14 @@
                     </div>
 
                     <div class="rq-result-actions">
+                        <a
+                            id="reviewLink"
+                            href="#"
+                            class="rq-button rq-button-secondary"
+                            hidden>
+                            Lihat Pembahasan
+                        </a>
+
                         <a
                             href="{{ route('student.reading', $lesson) }}"
                             class="rq-button rq-button-secondary">
@@ -1175,467 +1353,543 @@
             document.addEventListener(
                 'DOMContentLoaded',
                 function () {
-                    const totalQuestions =
-                        {{ $questionCount }};
+                    const totalQuestions = {{ $questionCount }};
+                    const maxChecksPerQuestion = {{ (int) config('learning.scoring.max_checks_per_question', 3) }};
 
-                    const completeUrl =
-                        @json(
-                            route(
-                                'student.reading.complete',
-                                $lesson
-                            )
-                        );
+                    const checkUrl = @json(route('student.reading.check', $lesson));
+                    const hintUrl = @json(route('student.reading.hint', $lesson));
+                    const finishUrl = @json(route('student.reading.finish', $lesson));
+                    const shownUrl = @json(route('student.reading.shown', $lesson));
+                    const abandonUrl = @json(route('student.reading.abandon', $lesson));
 
-                    const csrfToken =
-                        @json(csrf_token());
+                    // Modul 1 — Interaction Logger: sesi kuis ini
+                    // (null kalau logging gagal dibuka server-side —
+                    // lihat InteractionLogger). Kalau null, endpoint
+                    // check/hint/finish tetap dipanggil, hanya tidak
+                    // ada pencatatan learning_events untuk sesi ini.
+                    const quizSessionId = @json($quizSessionId);
 
-                    const quizWorkspace =
-                        document.getElementById(
-                            'quizWorkspace'
-                        );
+                    const csrfToken = @json(csrf_token());
 
-                    const progressCard =
-                        document.getElementById(
-                            'quizProgressCard'
-                        );
+                    const quizWorkspace = document.getElementById('quizWorkspace');
+                    const progressCard = document.getElementById('quizProgressCard');
+                    const counter = document.getElementById('questionCounter');
+                    const progressPercent = document.getElementById('progressPercent');
+                    const progressBar = document.getElementById('progressBar');
+                    const prevBtn = document.getElementById('prevBtn');
+                    const nextBtn = document.getElementById('nextBtn');
+                    const submitBtn = document.getElementById('submitBtn');
+                    const submitLabel = document.getElementById('submitLabel');
+                    const resultSection = document.getElementById('resultSection');
+                    const finalScore = document.getElementById('finalScore');
+                    const finalMessage = document.getElementById('finalMessage');
 
-                    const counter =
-                        document.getElementById(
-                            'questionCounter'
-                        );
+                    const slides = Array.from(document.querySelectorAll('.question-slide'));
 
-                    const progressPercent =
-                        document.getElementById(
-                            'progressPercent'
-                        );
+                    // Modul 5: state per soal (dikunci dari server —
+                    // ini cuma cache di sisi klien untuk kontrol UI,
+                    // server tetap yang menegakkan aturannya).
+                    const state = {};
+                    slides.forEach(function (slide) {
+                        state[slide.dataset.questionId] = {
+                            locked: false,
+                            isCorrect: null,
+                            checksUsed: 0,
+                            checksRemaining: maxChecksPerQuestion,
+                            socraticStep: 0
+                        };
+                    });
 
-                    const progressBar =
-                        document.getElementById(
-                            'progressBar'
-                        );
+                    const questionShownAt = {};
+                    let quizFinished = false;
 
-                    const prevBtn =
-                        document.getElementById(
-                            'prevBtn'
-                        );
+                    function markQuestionShown(index) {
+                        const slide = slides[index];
+                        if (!slide) {
+                            return;
+                        }
+                        const questionId = slide.dataset.questionId;
+                        if (questionShownAt[questionId] === undefined) {
+                            questionShownAt[questionId] = Date.now();
 
-                    const nextBtn =
-                        document.getElementById(
-                            'nextBtn'
-                        );
+                            // Saran perbaikan Modul 1: beri tahu server
+                            // "soal ini baru tampil" supaya response_ms
+                            // nanti bisa dihitung dari jam SERVER, bukan
+                            // dipercaya mentah dari klien. Fire-and-forget
+                            // - kalau gagal, check() tetap jalan dengan
+                            // fallback ke waktu klien (lihat responseMsFor).
+                            if (quizSessionId) {
+                                fetch(shownUrl, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRF-TOKEN': csrfToken,
+                                        'Accept': 'application/json',
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        quiz_session_id: quizSessionId,
+                                        question_id: Number(questionId)
+                                    }),
+                                    keepalive: true
+                                }).catch(function (error) {
+                                    console.warn('markShown gagal (tidak fatal):', error);
+                                });
+                            }
+                        }
+                    }
 
-                    const submitBtn =
-                        document.getElementById(
-                            'submitBtn'
-                        );
+                    function responseMsFor(questionId) {
+                        const shownAt = questionShownAt[questionId] ?? Date.now();
+                        return Date.now() - shownAt;
+                    }
 
-                    const submitLabel =
-                        document.getElementById(
-                            'submitLabel'
-                        );
-
-                    const resultSection =
-                        document.getElementById(
-                            'resultSection'
-                        );
-
-                    const finalScore =
-                        document.getElementById(
-                            'finalScore'
-                        );
-
-                    const slides =
-                        Array.from(
-                            document.querySelectorAll(
-                                '.question-slide'
-                            )
-                        );
+                    // Saran perbaikan Modul 1: catat 'abandon' kalau siswa
+                    // menutup tab / pindah halaman SEBELUM Finish. pagehide
+                    // dipilih (bukan beforeunload) karena lebih andal di
+                    // browser modern, termasuk saat berpindah ke aplikasi
+                    // lain di HP. sendBeacon dipakai karena permintaan
+                    // biasa (fetch) sering terputus saat halaman menutup.
+                    window.addEventListener('pagehide', function () {
+                        if (quizFinished || !quizSessionId) {
+                            return;
+                        }
+                        const data = new URLSearchParams();
+                        data.append('_token', csrfToken);
+                        data.append('quiz_session_id', quizSessionId);
+                        navigator.sendBeacon(abandonUrl, data);
+                    });
 
                     let currentQuestion = 0;
-                    let isSubmitting = false;
+                    let isChecking = false;
+                    let isRequestingHint = false;
+                    let isFinishing = false;
 
                     function getSelectedAnswer(slide) {
-                        return slide.querySelector(
-                            '.rq-option-input:checked'
-                        );
+                        return slide.querySelector('.rq-option-input:checked');
                     }
 
                     function updateOptionStates(slide) {
-                        const options =
-                            slide.querySelectorAll(
-                                '.rq-option'
-                            );
+                        const options = slide.querySelectorAll('.rq-option');
+                        options.forEach(function (option) {
+                            const input = option.querySelector('.rq-option-input');
+                            option.classList.toggle('is-selected', Boolean(input && input.checked));
+                        });
+                    }
 
-                        options.forEach(
-                            function (option) {
-                                const input =
-                                    option.querySelector(
-                                        '.rq-option-input'
-                                    );
-
-                                option.classList.toggle(
-                                    'is-selected',
-                                    Boolean(
-                                        input &&
-                                        input.checked
-                                    )
-                                );
-                            }
-                        );
+                    function setOptionsDisabled(slide, disabled) {
+                        slide.querySelectorAll('.rq-option-input').forEach(function (input) {
+                            input.disabled = disabled;
+                        });
                     }
 
                     function clearError(slide) {
-                        const error =
-                            slide.querySelector(
-                                '[data-answer-error]'
-                            );
-
+                        const error = slide.querySelector('[data-answer-error]');
                         if (error) {
                             error.hidden = true;
                         }
                     }
 
                     function showError(slide) {
-                        const error =
-                            slide.querySelector(
-                                '[data-answer-error]'
-                            );
-
+                        const error = slide.querySelector('[data-answer-error]');
                         if (error) {
                             error.hidden = false;
                         }
-
-                        const firstInput =
-                            slide.querySelector(
-                                '.rq-option-input'
-                            );
-
+                        const firstInput = slide.querySelector('.rq-option-input:not(:disabled)');
                         if (firstInput) {
                             firstInput.focus();
                         }
-                    }
-
-                    function validateQuestion(index) {
-                        const slide =
-                            slides[index];
-
-                        if (
-                            !slide ||
-                            !getSelectedAnswer(slide)
-                        ) {
-                            if (slide) {
-                                showError(slide);
-                            }
-
-                            return false;
-                        }
-
-                        clearError(slide);
-
-                        return true;
                     }
 
                     function scrollToWorkspace() {
                         if (!progressCard) {
                             return;
                         }
-
                         const navbarOffset = 104;
-
-                        const target =
-                            progressCard
-                                .getBoundingClientRect()
-                                .top +
-                            window.scrollY -
-                            navbarOffset;
-
-                        window.scrollTo({
-                            top: Math.max(
-                                0,
-                                target
-                            ),
-                            behavior: 'smooth'
-                        });
+                        const target = progressCard.getBoundingClientRect().top + window.scrollY - navbarOffset;
+                        window.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
                     }
 
-                    function renderQuestion(
-                        shouldScroll = false
-                    ) {
-                        slides.forEach(
-                            function (slide, index) {
-                                slide.hidden =
-                                    index !== currentQuestion;
-                            }
-                        );
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Modul 5 — render bantuan visual per soal (feedback, tombol Check/Hint,
+                    | sisa percobaan) berdasarkan state[] saat ini.
+                    |--------------------------------------------------------------------------
+                    */
+                    function renderQuestionState(slide) {
+                        const questionId = slide.dataset.questionId;
+                        const qState = state[questionId];
 
-                        const displayedQuestion =
-                            currentQuestion + 1;
+                        const checkBtn = slide.querySelector('[data-check-btn]');
+                        const hintBtn = slide.querySelector('[data-hint-btn]');
+                        const checksRemainingEl = slide.querySelector('[data-checks-remaining]');
+                        const feedbackEl = slide.querySelector('[data-feedback]');
 
-                        const percentage =
-                            Math.round(
-                                (
-                                    displayedQuestion /
-                                    totalQuestions
-                                ) * 100
-                            );
+                        setOptionsDisabled(slide, qState.locked);
 
-                        counter.textContent =
-                            'Question ' +
-                            displayedQuestion +
-                            ' of ' +
-                            totalQuestions;
+                        if (qState.checksUsed === 0) {
+                            checkBtn.hidden = false;
+                            checkBtn.disabled = false;
+                            checkBtn.textContent = 'Check';
+                            checksRemainingEl.hidden = true;
+                            feedbackEl.hidden = true;
+                            hintBtn.hidden = false;
+                            return;
+                        }
 
-                        progressPercent.textContent =
-                            percentage;
+                        checksRemainingEl.hidden = false;
+                        checksRemainingEl.textContent = qState.checksRemaining > 0
+                            ? qState.checksRemaining + ' check' + (qState.checksRemaining === 1 ? '' : 's') + ' left'
+                            : 'No checks left';
 
-                        progressBar.style.width =
-                            percentage + '%';
+                        feedbackEl.hidden = false;
 
-                        prevBtn.disabled =
-                            currentQuestion === 0;
+                        if (qState.isCorrect) {
+                            feedbackEl.className = 'rq-feedback is-correct';
+                            feedbackEl.textContent = 'Correct! This question is locked in.';
+                            checkBtn.hidden = true;
+                            hintBtn.hidden = true;
+                        } else if (qState.locked) {
+                            feedbackEl.className = 'rq-feedback is-locked';
+                            feedbackEl.textContent = "You've used all your checks for this question. You can still read hints to understand it, then move on.";
+                            checkBtn.hidden = true;
+                            hintBtn.hidden = false;
+                        } else {
+                            feedbackEl.className = 'rq-feedback is-incorrect';
+                            feedbackEl.textContent = 'Not quite — try again, or ask for a hint.';
+                            checkBtn.hidden = false;
+                            checkBtn.disabled = false;
+                            checkBtn.textContent = 'Check Again';
+                            hintBtn.hidden = false;
+                        }
+                    }
 
-                        nextBtn.hidden =
-                            currentQuestion ===
-                            totalQuestions - 1;
+                    function renderQuestion(shouldScroll = false) {
+                        slides.forEach(function (slide, index) {
+                            slide.hidden = index !== currentQuestion;
+                        });
 
-                        submitBtn.hidden =
-                            currentQuestion !==
-                            totalQuestions - 1;
+                        markQuestionShown(currentQuestion);
 
-                        updateOptionStates(
-                            slides[currentQuestion]
-                        );
+                        const slide = slides[currentQuestion];
+                        const displayedQuestion = currentQuestion + 1;
+                        const percentage = Math.round((displayedQuestion / totalQuestions) * 100);
+
+                        counter.textContent = 'Question ' + displayedQuestion + ' of ' + totalQuestions;
+                        progressPercent.textContent = percentage;
+                        progressBar.style.width = percentage + '%';
+
+                        prevBtn.disabled = currentQuestion === 0;
+
+                        const isLastQuestion = currentQuestion === totalQuestions - 1;
+                        const isLocked = state[slide.dataset.questionId].locked;
+
+                        nextBtn.hidden = isLastQuestion;
+                        nextBtn.disabled = !isLocked;
+
+                        submitBtn.hidden = !isLastQuestion;
+                        submitBtn.disabled = !isLocked;
+
+                        updateOptionStates(slide);
+                        renderQuestionState(slide);
 
                         if (shouldScroll) {
                             scrollToWorkspace();
                         }
                     }
 
-                    function collectAnswers() {
-                        const answers = {};
-                        let firstUnanswered = -1;
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Modul 5 — Check
+                    |--------------------------------------------------------------------------
+                    */
+                    async function performCheck(slide) {
+                        if (isChecking) {
+                            return;
+                        }
 
-                        slides.forEach(
-                            function (slide, index) {
-                                const selected =
-                                    getSelectedAnswer(
-                                        slide
-                                    );
+                        const questionId = slide.dataset.questionId;
+                        const selected = getSelectedAnswer(slide);
 
-                                if (
-                                    !selected &&
-                                    firstUnanswered === -1
-                                ) {
-                                    firstUnanswered =
-                                        index;
+                        if (!selected) {
+                            showError(slide);
+                            return;
+                        }
+                        clearError(slide);
 
-                                    return;
-                                }
+                        const checkBtn = slide.querySelector('[data-check-btn]');
+                        isChecking = true;
+                        checkBtn.disabled = true;
+                        checkBtn.textContent = 'Checking...';
 
-                                if (selected) {
-                                    const questionId =
-                                        slide.dataset
-                                            .questionId;
+                        try {
+                            const response = await fetch(checkUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRF-TOKEN': csrfToken,
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    quiz_session_id: quizSessionId,
+                                    question_id: Number(questionId),
+                                    selected_answer: selected.value,
+                                    response_ms: responseMsFor(questionId)
+                                })
+                            });
 
-                                    answers[questionId] =
-                                        selected.value;
+                            const result = await response.json();
+
+                            if (!response.ok) {
+                                throw new Error(result.message || 'Could not check this answer.');
+                            }
+
+                            state[questionId] = {
+                                locked: Boolean(result.locked),
+                                isCorrect: Boolean(result.is_correct),
+                                checksUsed: result.checks_used,
+                                checksRemaining: result.checks_remaining,
+                                socraticStep: state[questionId].socraticStep
+                            };
+
+                            renderQuestionState(slide);
+
+                            const isLastQuestion = currentQuestion === totalQuestions - 1;
+                            if (state[questionId].locked) {
+                                if (isLastQuestion) {
+                                    submitBtn.disabled = false;
+                                } else {
+                                    nextBtn.disabled = false;
                                 }
                             }
-                        );
-
-                        return {
-                            answers: answers,
-                            firstUnanswered:
-                                firstUnanswered
-                        };
+                        } catch (error) {
+                            console.error('Reading check error:', error);
+                            alert(error.message || 'Could not check this answer. Please try again.');
+                            const qState = state[questionId];
+                            checkBtn.disabled = false;
+                            checkBtn.textContent = qState.checksUsed > 0 ? 'Check Again' : 'Check';
+                        } finally {
+                            isChecking = false;
+                        }
                     }
 
-                    slides.forEach(
-                        function (slide) {
-                            const inputs =
-                                slide.querySelectorAll(
-                                    '.rq-option-input'
-                                );
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Modul 5 — Hint (termasuk langkah Socratic satu-per-satu)
+                    |--------------------------------------------------------------------------
+                    */
+                    function appendHintHistoryItem(slide, levelLabel, text) {
+                        const history = slide.querySelector('[data-hint-history]');
+                        const item = document.createElement('div');
+                        item.className = 'rq-hint-item';
 
-                            inputs.forEach(
-                                function (input) {
-                                    input.addEventListener(
-                                        'change',
-                                        function () {
-                                            updateOptionStates(
-                                                slide
-                                            );
+                        const badge = document.createElement('span');
+                        badge.className = 'rq-hint-item-level';
+                        badge.textContent = levelLabel;
 
-                                            clearError(
-                                                slide
-                                            );
-                                        }
-                                    );
-                                }
-                            );
+                        const body = document.createElement('div');
+                        body.textContent = text;
 
-                            updateOptionStates(
-                                slide
-                            );
+                        item.appendChild(badge);
+                        item.appendChild(body);
+                        history.appendChild(item);
+                    }
+
+                    async function requestHint(slide, socraticAnswer, socraticStep) {
+                        if (isRequestingHint) {
+                            return;
                         }
-                    );
 
-                    nextBtn.addEventListener(
-                        'click',
-                        function () {
-                            if (
-                                !validateQuestion(
-                                    currentQuestion
-                                )
-                            ) {
+                        const questionId = slide.dataset.questionId;
+                        const hintBtn = slide.querySelector('[data-hint-btn]');
+                        const hintPanel = slide.querySelector('[data-hint-panel]');
+                        const hintErrorLabel = slide.querySelector('[data-hint-error-label]');
+                        const hintSocratic = slide.querySelector('[data-hint-socratic]');
+                        const socraticInput = slide.querySelector('[data-socratic-input]');
+                        const socraticSubmitBtn = slide.querySelector('[data-socratic-submit]');
+
+                        isRequestingHint = true;
+                        hintBtn.disabled = true;
+                        socraticSubmitBtn.disabled = true;
+
+                        try {
+                            const payload = {
+                                quiz_session_id: quizSessionId,
+                                question_id: Number(questionId)
+                            };
+                            if (socraticAnswer !== undefined) {
+                                payload.socratic_answer = socraticAnswer;
+                                payload.socratic_step = socraticStep;
+                            }
+
+                            const response = await fetch(hintUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRF-TOKEN': csrfToken,
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(payload)
+                            });
+
+                            const result = await response.json();
+
+                            if (!response.ok) {
+                                throw new Error(result.message || 'Could not load a hint right now.');
+                            }
+
+                            hintPanel.hidden = false;
+                            hintErrorLabel.textContent = result.error_hint_label || '';
+                            hintErrorLabel.hidden = !result.error_hint_label;
+
+                            if (result.socratic_complete === true) {
+                                appendHintHistoryItem(
+                                    slide,
+                                    'L3',
+                                    "You've worked through all the guiding questions for this hint level. Try selecting your answer again with what you've figured out!"
+                                );
+                                hintSocratic.hidden = true;
+                            } else if (result.socratic_question) {
+                                appendHintHistoryItem(slide, 'L3 · Q' + (result.socratic_step + 1), result.socratic_question);
+                                state[questionId].socraticStep = result.socratic_step;
+                                hintSocratic.hidden = false;
+                                socraticInput.value = '';
+                                socraticInput.focus();
+                            } else if (result.hint_text) {
+                                appendHintHistoryItem(slide, 'L' + result.level, result.hint_text);
+                                hintSocratic.hidden = true;
+                            }
+                        } catch (error) {
+                            console.error('Reading hint error:', error);
+                            alert(error.message || 'Could not load a hint right now. Please try again.');
+                        } finally {
+                            isRequestingHint = false;
+                            hintBtn.disabled = false;
+                            socraticSubmitBtn.disabled = false;
+                        }
+                    }
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Wire up per-slide controls
+                    |--------------------------------------------------------------------------
+                    */
+                    slides.forEach(function (slide) {
+                        const inputs = slide.querySelectorAll('.rq-option-input');
+                        inputs.forEach(function (input) {
+                            input.addEventListener('change', function () {
+                                updateOptionStates(slide);
+                                clearError(slide);
+                            });
+                        });
+                        updateOptionStates(slide);
+
+                        const checkBtn = slide.querySelector('[data-check-btn]');
+                        checkBtn.addEventListener('click', function () {
+                            performCheck(slide);
+                        });
+
+                        const hintBtn = slide.querySelector('[data-hint-btn]');
+                        hintBtn.addEventListener('click', function () {
+                            requestHint(slide);
+                        });
+
+                        const socraticSubmitBtn = slide.querySelector('[data-socratic-submit]');
+                        socraticSubmitBtn.addEventListener('click', function () {
+                            const socraticInput = slide.querySelector('[data-socratic-input]');
+                            const answer = socraticInput.value.trim();
+                            if (answer === '') {
+                                socraticInput.focus();
                                 return;
                             }
+                            const questionId = slide.dataset.questionId;
+                            requestHint(slide, answer, state[questionId].socraticStep);
+                        });
+                    });
 
-                            if (
-                                currentQuestion <
-                                totalQuestions - 1
-                            ) {
-                                currentQuestion++;
-
-                                renderQuestion(true);
-                            }
+                    nextBtn.addEventListener('click', function () {
+                        const slide = slides[currentQuestion];
+                        if (!state[slide.dataset.questionId].locked) {
+                            return;
                         }
-                    );
-
-                    prevBtn.addEventListener(
-                        'click',
-                        function () {
-                            if (
-                                currentQuestion > 0
-                            ) {
-                                currentQuestion--;
-
-                                renderQuestion(true);
-                            }
+                        if (currentQuestion < totalQuestions - 1) {
+                            currentQuestion++;
+                            renderQuestion(true);
                         }
-                    );
+                    });
 
-                    submitBtn.addEventListener(
-                        'click',
-                        async function () {
-                            if (isSubmitting) {
-                                return;
-                            }
-
-                            const collected =
-                                collectAnswers();
-
-                            if (
-                                collected
-                                    .firstUnanswered !== -1
-                            ) {
-                                currentQuestion =
-                                    collected
-                                        .firstUnanswered;
-
-                                renderQuestion(true);
-
-                                showError(
-                                    slides[
-                                        currentQuestion
-                                    ]
-                                );
-
-                                return;
-                            }
-
-                            isSubmitting = true;
-                            submitBtn.disabled = true;
-
-                            submitLabel.textContent =
-                                'Saving result...';
-
-                            try {
-                                const response =
-                                    await fetch(
-                                        completeUrl,
-                                        {
-                                            method: 'POST',
-
-                                            headers: {
-                                                'X-CSRF-TOKEN':
-                                                    csrfToken,
-
-                                                'Accept':
-                                                    'application/json',
-
-                                                'Content-Type':
-                                                    'application/json'
-                                            },
-
-                                            body:
-                                                JSON.stringify({
-                                                    answers:
-                                                        collected
-                                                            .answers
-                                                })
-                                        }
-                                    );
-
-                                const result =
-                                    await response.json();
-
-                                if (
-                                    !response.ok ||
-                                    !result.success
-                                ) {
-                                    throw new Error(
-                                        result.message ||
-                                        'The result could not be saved.'
-                                    );
-                                }
-
-                                finalScore.textContent =
-                                    result.score ?? 0;
-
-                                quizWorkspace.hidden =
-                                    true;
-
-                                resultSection.hidden =
-                                    false;
-
-                                const navbarOffset =
-                                    104;
-
-                                const target =
-                                    resultSection
-                                        .getBoundingClientRect()
-                                        .top +
-                                    window.scrollY -
-                                    navbarOffset;
-
-                                window.scrollTo({
-                                    top: Math.max(
-                                        0,
-                                        target
-                                    ),
-                                    behavior: 'smooth'
-                                });
-                            } catch (error) {
-                                console.error(
-                                    'Reading quiz submit error:',
-                                    error
-                                );
-
-                                alert(
-                                    error.message ||
-                                    'The result could not be saved. Please try again.'
-                                );
-
-                                isSubmitting = false;
-                                submitBtn.disabled =
-                                    false;
-
-                                submitLabel.textContent =
-                                    'Submit Quiz';
-                            }
+                    prevBtn.addEventListener('click', function () {
+                        if (currentQuestion > 0) {
+                            currentQuestion--;
+                            renderQuestion(true);
                         }
-                    );
+                    });
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Modul 5 — Finish
+                    |--------------------------------------------------------------------------
+                    */
+                    submitBtn.addEventListener('click', async function () {
+                        if (isFinishing) {
+                            return;
+                        }
+                        const lastSlide = slides[totalQuestions - 1];
+                        if (!state[lastSlide.dataset.questionId].locked) {
+                            return;
+                        }
+
+                        isFinishing = true;
+                        submitBtn.disabled = true;
+                        submitLabel.textContent = 'Saving result...';
+
+                        try {
+                            const response = await fetch(finishUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRF-TOKEN': csrfToken,
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    quiz_session_id: quizSessionId
+                                })
+                            });
+
+                            const result = await response.json();
+
+                            if (!response.ok || !result.success) {
+                                throw new Error(result.message || 'The result could not be saved.');
+                            }
+
+                            finalScore.textContent = result.score ?? 0;
+                            finalMessage.textContent = result.message || 'Your reading result has been calculated and saved.';
+
+                            // Saran perbaikan Modul 1: kuis selesai secara
+                            // sah — pagehide setelah ini TIDAK dianggap
+                            // 'abandon' lagi.
+                            quizFinished = true;
+
+                            // Saran perbaikan Modul 5 — Halaman Pembahasan.
+                            const reviewLink = document.getElementById('reviewLink');
+                            if (result.review_url) {
+                                reviewLink.href = result.review_url;
+                                reviewLink.hidden = false;
+                            }
+
+                            quizWorkspace.hidden = true;
+                            resultSection.hidden = false;
+
+                            const navbarOffset = 104;
+                            const target = resultSection.getBoundingClientRect().top + window.scrollY - navbarOffset;
+                            window.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+                        } catch (error) {
+                            console.error('Reading finish error:', error);
+                            alert(error.message || 'The result could not be saved. Please try again.');
+                            isFinishing = false;
+                            submitBtn.disabled = false;
+                            submitLabel.textContent = 'Finish Quiz';
+                        }
+                    });
 
                     renderQuestion(false);
                 }
