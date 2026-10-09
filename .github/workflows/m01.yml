@@ -48,7 +48,8 @@ jobs:
         run: |
           php -l app/Services/Orchestration/AgentOrchestrator.php
           php -l tests/Unit/AgentOrchestratorTest.php
+          php -l tests/Feature/AgentOrchestratorWorkflowTest.php
       - name: Run database migrations
         run: php artisan migrate --force
       - name: Orchestrator unit tests
-        run: php artisan test --filter=AgentOrchestratorTest
+        run: php artisan test --filter=AgentOrchestrator
