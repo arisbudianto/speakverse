@@ -176,7 +176,7 @@ class AgentOrchestratorTest extends TestCase
         $calls = 0;
         $scaffolding->shouldReceive('generate')->twice()->andReturnUsing(function () use (&$calls) {
             if (++$calls === 1) {
-                throw new \\RuntimeException('temporary');
+                throw new \RuntimeException('temporary');
             }
             return ['level' => 1, 'source' => 'rule', 'hint_text' => 'Retry worked'];
         });
