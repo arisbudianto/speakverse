@@ -688,7 +688,9 @@ class StudentReadingController extends Controller
             'question' => $question,
             'selected_answer' => $validated['selected_answer'],
             'signals' => ['wrong_count' => 1],
-            'teacher_override' => $override,
+            'teacher_override' => isset($override['level_override'])
+                ? ['freeze_level' => (int) $override['level_override']]
+                : null,
             'scaffolding_context' => [
                 'skill' => 'reading',
                 'question_id' => $question->id,
