@@ -2,6 +2,7 @@
 
 namespace App\Services\Orchestration;
 
+use App\Models\AgentWorkflowTrace;
 use App\Services\Learning\AdaptationPolicy;
 use App\Services\Learning\DiagnosticEngine;
 use App\Services\Learning\ScaffoldingEngine;
@@ -103,6 +104,20 @@ final class AgentOrchestrator
             'status' => $status,
             'trace' => $trace,
         ]);
+
+        try {
+            AgentWorkflowTrace::query()->create([
+                'workflow_id' => $workflowId,
+                'status' => $status,
+                'steps' => $trace,
+            ]);
+        } catch (Throwable $exception) {
+            // Telemetry must not interrupt the learner's workflow.
+            Log::warning('M01 trace persistence failed', [
+                'workflow_id' => $workflowId,
+                'exception_type' => get_class($exception),
+            ]);
+        }
 
         return compact('workflowId', 'status', 'diagnosis', 'decision', 'scaffolding', 'trace')
             + ['workflow_id' => $workflowId];
