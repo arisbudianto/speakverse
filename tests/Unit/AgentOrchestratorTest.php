@@ -165,6 +165,30 @@ class AgentOrchestratorTest extends TestCase
         $orchestrator->run([]);
     }
 
+    public function test_transient_scaffolding_exception_is_retried_once(): void
+    {
+        config()->set('learning.orchestrator.scaffolding_attempts', 2);
+        $diagnostic = Mockery::mock(DiagnosticEngine::class);
+        $policy = Mockery::mock(AdaptationPolicy::class);
+        $scaffolding = Mockery::mock(ScaffoldingEngine::class);
+        $diagnostic->shouldReceive('classify')->once()->andReturn(['error_code' => 'lexical']);
+        $policy->shouldReceive('decideHintLevel')->once()->andReturn(['level' => 1, 'reasons' => []]);
+        $calls = 0;
+        $scaffolding->shouldReceive('generate')->twice()->andReturnUsing(function () use (&$calls) {
+            if (++$calls === 1) {
+                throw new \\RuntimeException('temporary');
+            }
+            return ['level' => 1, 'source' => 'rule', 'hint_text' => 'Retry worked'];
+        });
+
+        $result = (new AgentOrchestrator($diagnostic, $policy, $scaffolding))->run([
+            'question' => (object) ['correct_answer' => 'A'],
+            'selected_answer' => 'B', 'scaffolding_context' => [],
+        ]);
+        $this->assertSame('completed', $result['status']);
+        $this->assertSame('retryable_failure', $result['trace'][2]['status']);
+    }
+
     public function test_agent_failure_is_traced_without_exposing_exception_message(): void
     {
         $diagnostic = Mockery::mock(DiagnosticEngine::class);
