@@ -118,11 +118,28 @@ final class AgentOrchestrator
                 // Orchestrator owns the diagnosis and policy level, not the caller.
                 $context['error_code'] = $diagnosis['error_code'] ?? null;
                 $context['level'] = $level;
-                $scaffolding = $this->scaffolding->generate(
-                    $context,
-                    (bool) ($input['force_template_only'] ?? false),
-                    $input['user_id'] ?? null
-                );
+                // Retry only transient scaffolding exceptions; never retry diagnosis or grading.
+                // This is a soft deadline: the underlying LLM client enforces its own HTTP timeout.
+                $deadline = microtime(true) + max(1, (int) config('learning.orchestrator.timeout_seconds', 25));
+                $maxAttempts = max(1, min(3, (int) config('learning.orchestrator.scaffolding_attempts', 2)));
+                for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+                    try {
+                        if (microtime(true) >= $deadline) {
+                            throw new \RuntimeException('Orchestrator soft deadline exceeded.');
+                        }
+                        $scaffolding = $this->scaffolding->generate(
+                            $context,
+                            (bool) ($input['force_template_only'] ?? false),
+                            $input['user_id'] ?? null
+                        );
+                        break;
+                    } catch (Throwable $scaffoldingError) {
+                        $step('scaffolding', 'retryable_failure', ['attempt' => $attempt]);
+                        if ($attempt === $maxAttempts || microtime(true) >= $deadline) {
+                            throw $scaffoldingError;
+                        }
+                    }
+                }
                 $step('scaffolding', 'completed', [
                     'level' => $scaffolding['level'] ?? $level,
                     'source' => $scaffolding['source'] ?? 'unknown',
