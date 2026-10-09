@@ -11,8 +11,6 @@ on:
 jobs:
   orchestrator:
     runs-on: ubuntu-latest
-    jobs:
-    
     services:
       mysql:
         image: mysql:8.4
@@ -28,13 +26,12 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
-          
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: mbstring, pdo_sqlite, sqlite3
+          extensions: mbstring, pdo_mysql
           coverage: none
       - run: composer install --no-interaction --prefer-dist --no-progress
       - name: Prepare test environment
@@ -50,12 +47,8 @@ jobs:
       - name: Syntax checks
         run: |
           php -l app/Services/Orchestration/AgentOrchestrator.php
-          
+          php -l tests/Unit/AgentOrchestratorTest.php
       - name: Run database migrations
         run: php artisan migrate --force
-
-      - name: Orchestrator unit tests
-        run: php artisan test --filter=AgentOrchestratorTest
-          php -l tests/Unit/AgentOrchestratorTest.php
       - name: Orchestrator unit tests
         run: php artisan test --filter=AgentOrchestratorTest
