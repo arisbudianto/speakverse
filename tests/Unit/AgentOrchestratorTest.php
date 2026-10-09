@@ -10,11 +10,27 @@ use InvalidArgumentException;
 use App\Models\AgentWorkflowTrace;
 use Mockery;
 use Tests\TestCase;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 class AgentOrchestratorTest extends TestCase
 {
-    use RefreshDatabase;
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Keep isolated unit tests independent of unrelated legacy migrations.
+        if (! Schema::hasTable('agent_workflow_traces')) {
+            Schema::create('agent_workflow_traces', function (Blueprint $table) {
+                $table->id();
+                $table->uuid('workflow_id')->unique();
+                $table->string('status', 20);
+                $table->json('steps');
+                $table->timestamps();
+            });
+        }
+    }
+
 
     public function test_trace_is_persisted_with_no_student_answer_or_passage(): void
     {
