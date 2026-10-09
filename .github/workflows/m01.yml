@@ -19,8 +19,12 @@ jobs:
           extensions: mbstring, pdo_sqlite, sqlite3
           coverage: none
       - run: composer install --no-interaction --prefer-dist --no-progress
-      - run: cp .env.example .env
-      - run: php artisan key:generate
+      - name: Prepare test environment
+        run: |
+          echo "APP_ENV=testing" >> "$GITHUB_ENV"
+          echo "APP_KEY=base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" >> "$GITHUB_ENV"
+          echo "DB_CONNECTION=sqlite" >> "$GITHUB_ENV"
+          echo "DB_DATABASE=:memory:" >> "$GITHUB_ENV"
       - name: Syntax checks
         run: |
           php -l app/Services/Orchestration/AgentOrchestrator.php
