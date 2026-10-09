@@ -11,6 +11,26 @@ on:
 jobs:
   orchestrator:
     runs-on: ubuntu-latest
+    jobs:
+  orchestrator:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: speakverse_test
+          MYSQL_USER: speakverse
+          MYSQL_PASSWORD: test_password
+          MYSQL_ROOT_PASSWORD: root_test_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+          
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
