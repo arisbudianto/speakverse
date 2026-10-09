@@ -22,7 +22,8 @@ COPY . .
 COPY --from=assets /src/public/build ./public/build
 RUN mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache \
-    && composer dump-autoload --no-dev --optimize --no-scripts
+    && composer dump-autoload --no-dev --optimize --no-scripts \
+    && php artisan package:discover --ansi
 USER www-data
 EXPOSE 9000
 CMD ["php-fpm"]
