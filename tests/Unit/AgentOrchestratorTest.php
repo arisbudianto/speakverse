@@ -15,24 +15,24 @@ class AgentOrchestratorTest extends TestCase
 {
     public function test_trace_is_persisted_with_no_student_answer_or_passage(): void
     {
-            $diagnostic = Mockery::mock(DiagnosticEngine::class);
-            $policy = Mockery::mock(AdaptationPolicy::class);
-            $scaffolding = Mockery::mock(ScaffoldingEngine::class);
-            $diagnostic->shouldReceive('classify')->once()->andReturn(['error_code' => null]);
-            $policy->shouldReceive('decideHintLevel')->once()->andReturn(['level' => 0, 'reasons' => []]);
-            $scaffolding->shouldNotReceive('generate');
+        $diagnostic = Mockery::mock(DiagnosticEngine::class);
+        $policy = Mockery::mock(AdaptationPolicy::class);
+        $scaffolding = Mockery::mock(ScaffoldingEngine::class);
+        $diagnostic->shouldReceive('classify')->once()->andReturn(['error_code' => null]);
+        $policy->shouldReceive('decideHintLevel')->once()->andReturn(['level' => 0, 'reasons' => []]);
+        $scaffolding->shouldNotReceive('generate');
 
-            $result = (new AgentOrchestrator($diagnostic, $policy, $scaffolding))->run([
-                'question' => (object) ['correct_answer' => 'A'],
-                'selected_answer' => 'SECRET_STUDENT_ANSWER',
-                'scaffolding_context' => ['text' => 'PRIVATE_PASSAGE'],
-            ]);
+        $result = (new AgentOrchestrator($diagnostic, $policy, $scaffolding))->run([
+            'question' => (object) ['correct_answer' => 'A'],
+            'selected_answer' => 'SECRET_STUDENT_ANSWER',
+            'scaffolding_context' => ['text' => 'PRIVATE_PASSAGE'],
+        ]);
 
-            $saved = AgentWorkflowTrace::query()->where('workflow_id', $result['workflow_id'])->firstOrFail();
-            $this->assertSame('completed', $saved->status);
-            $this->assertCount(3, $saved->steps);
-            $this->assertStringNotContainsString('SECRET_STUDENT_ANSWER', json_encode($saved->steps));
-            $this->assertStringNotContainsString('PRIVATE_PASSAGE', json_encode($saved->steps));
+        $saved = AgentWorkflowTrace::query()->where('workflow_id', $result['workflow_id'])->firstOrFail();
+        $this->assertSame('completed', $saved->status);
+        $this->assertCount(3, $saved->steps);
+        $this->assertStringNotContainsString('SECRET_STUDENT_ANSWER', json_encode($saved->steps));
+        $this->assertStringNotContainsString('PRIVATE_PASSAGE', json_encode($saved->steps));
     }
 
     public function test_routes_diagnostic_policy_and_scaffolding_in_order(): void
