@@ -8,8 +8,6 @@ use App\Services\Learning\ScaffoldingEngine;
 use App\Services\Orchestration\AgentOrchestrator;
 use InvalidArgumentException;
 use App\Models\AgentWorkflowTrace;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Mockery;
 use Tests\TestCase;
 
@@ -17,15 +15,6 @@ class AgentOrchestratorTest extends TestCase
 {
     public function test_trace_is_persisted_with_no_student_answer_or_passage(): void
     {
-        Schema::create('agent_workflow_traces', function (Blueprint $table) {
-            $table->id();
-            $table->uuid('workflow_id')->unique();
-            $table->string('status', 20);
-            $table->json('steps');
-            $table->timestamps();
-        });
-
-        try {
             $diagnostic = Mockery::mock(DiagnosticEngine::class);
             $policy = Mockery::mock(AdaptationPolicy::class);
             $scaffolding = Mockery::mock(ScaffoldingEngine::class);
@@ -44,9 +33,6 @@ class AgentOrchestratorTest extends TestCase
             $this->assertCount(3, $saved->steps);
             $this->assertStringNotContainsString('SECRET_STUDENT_ANSWER', json_encode($saved->steps));
             $this->assertStringNotContainsString('PRIVATE_PASSAGE', json_encode($saved->steps));
-        } finally {
-            Schema::dropIfExists('agent_workflow_traces');
-        }
     }
 
     public function test_routes_diagnostic_policy_and_scaffolding_in_order(): void
