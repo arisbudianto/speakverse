@@ -20,3 +20,10 @@ Optional `idempotency_key` requires an integer `user_id` supplied by a trusted c
 
 ## Not yet implemented
 Recovery for abandoned `processing` claims, timeout/retry policy, resumable workflow state, assessment agent, learner-modeling agent, integration with live controllers, teacher dashboard, and HTTP end-to-end workflow tests. These require subsequent M01 increments and are not claimed complete.
+
+
+## Opt-in student HTTP integration (experimental)
+Authenticated and verified students can POST to `/missions/unit/{lesson}/reading/orchestrate` with `question_id`, `selected_answer` (A–E), and `idempotency_key`. The controller checks that the question belongs to the lesson, derives the user ID from the session, maps the teacher level override, and returns a minimal learner-safe response. A duplicate completed request replays its result; a concurrent duplicate returns HTTP 202. Failed workflows return HTTP 503 without exposing exception details. This is an opt-in endpoint; the legacy check/hint/finish endpoints and the quiz UI are unchanged. HTTP feature tests cover authentication, lesson-question isolation, and idempotent replay.
+
+## Retry and timeout semantics
+Only scaffolding exceptions are retried (default: two attempts; configurable with `learning.orchestrator.scaffolding_attempts`, clamped to 1–3). The orchestrator checks a soft deadline before each attempt (default 25 seconds via `learning.orchestrator.timeout_seconds`). This **does not interrupt an in-flight synchronous call**; the ScaffoldingEngine retains its own 20-second HTTP timeout and template fallback. The remaining work includes a hard end-to-end deadline, recovery for stuck processing claims, explicit learner session ownership, and rollout of the opt-in endpoint to the student UI.
