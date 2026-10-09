@@ -16,6 +16,7 @@ use App\Services\Learning\DiagnosticEngine;
 use App\Services\Learning\InteractionLogger;
 use App\Services\Learning\ScaffoldingEngine;
 use App\Services\Learning\TeacherOverrideService;
+use App\Services\Orchestration\AgentOrchestrator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -655,6 +656,75 @@ class StudentReadingController extends Controller
             // Soal dikunci (tidak bisa dicoba lagi) begitu benar,
             // ATAU begitu batas percobaan habis.
             'locked' => $isCorrect || $checksRemaining === 0,
+        ]);
+    }
+
+    /**
+     * M01 opt-in orchestration endpoint. Existing check/hint/finish semantics
+     * remain unchanged until the student UI explicitly adopts this route.
+     */
+    public function orchestrate(
+        Request $request,
+        Lesson $lesson,
+        AgentOrchestrator $orchestrator,
+        TeacherOverrideService $overrideService
+    ): JsonResponse {
+        $validated = $request->validate([
+            'question_id' => ['required', 'integer'],
+            'selected_answer' => ['required', 'in:A,B,C,D,E'],
+            'idempotency_key' => ['required', 'string', 'max:128'],
+        ]);
+
+        $question = ReadingQuestion::with('material')
+            ->whereHas('material', fn ($query) => $query->where('lesson_id', $lesson->id))
+            ->find($validated['question_id']);
+
+        if (! $question) {
+            return response()->json(['message' => 'Question not found for this lesson.'], 404);
+        }
+
+        $override = $overrideService->resolveForStudent(Auth::user());
+        $result = $orchestrator->run([
+            'question' => $question,
+            'selected_answer' => $validated['selected_answer'],
+            'signals' => ['wrong_count' => 1],
+            'teacher_override' => isset($override['level_override'])
+                ? ['freeze_level' => (int) $override['level_override']]
+                : null,
+            'scaffolding_context' => [
+                'skill' => 'reading',
+                'question_id' => $question->id,
+                'text' => $question->text_span
+                    ?: Str::limit((string) ($question->material->passage ?? ''), 1500, ''),
+                'question' => $question->question,
+                'options' => [
+                    'A' => $question->option_a,
+                    'B' => $question->option_b,
+                    'C' => $question->option_c,
+                    'D' => $question->option_d,
+                    'E' => $question->option_e,
+                ],
+                'correct_answer' => $question->correct_answer,
+                'correct_answer_text' => $question->{'option_' . strtolower((string) $question->correct_answer)},
+            ],
+            'force_template_only' => (bool) ($override['disable_llm'] ?? false),
+            'user_id' => (int) Auth::id(),
+            'idempotency_key' => $lesson->id.':'.$question->id.':'.$validated['idempotency_key'],
+        ]);
+
+        if ($result['status'] === 'processing') {
+            return response()->json(['workflow_id' => $result['workflow_id'], 'status' => 'processing'], 202);
+        }
+        if ($result['status'] !== 'completed') {
+            return response()->json(['workflow_id' => $result['workflow_id'], 'status' => 'failed'], 503);
+        }
+
+        return response()->json([
+            'workflow_id' => $result['workflow_id'],
+            'status' => 'completed',
+            'level' => $result['decision']['level'] ?? 0,
+            'hint_text' => $result['scaffolding']['hint_text'] ?? null,
+            'socratic_questions' => $result['scaffolding']['socratic_questions'] ?? [],
         ]);
     }
 

@@ -1,5 +1,5 @@
 # SpeakVerse M00: image is built from the EXISTING composer.lock/package-lock.json.
-FROM node:22-bookworm-slim AS assets
+FROM public.ecr.aws/docker/library/node:22-bookworm-slim AS assets
 WORKDIR /src
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -8,13 +8,13 @@ COPY resources ./resources
 COPY public ./public
 RUN npm run build
 
-FROM php:8.4-fpm-bookworm AS runtime
+FROM public.ecr.aws/docker/library/php:8.4-fpm-bookworm AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git unzip libzip-dev libicu-dev libonig-dev libpng-dev libjpeg62-turbo-dev libfreetype6-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" pdo_mysql zip intl gd bcmath opcache \
     && rm -rf /var/lib/apt/lists/*
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY --from=public.ecr.aws/docker/library/composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www/html
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --no-scripts --optimize-autoloader
@@ -28,7 +28,7 @@ USER www-data
 EXPOSE 9000
 CMD ["php-fpm"]
 
-FROM nginx:1.27-alpine AS web
+FROM public.ecr.aws/docker/library/nginx:1.27-alpine AS web
 COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY public /var/www/html/public
 COPY --from=assets /src/public/build /var/www/html/public/build

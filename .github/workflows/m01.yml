@@ -1,0 +1,57 @@
+name: M01 Orchestrator CI
+
+on:
+  push:
+    branches:
+      - feature/M01-orchestrator
+  pull_request:
+    branches:
+      - staging
+
+jobs:
+  orchestrator:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: public.ecr.aws/docker/library/mysql:8.4
+        env:
+          MYSQL_DATABASE: speakverse_test
+          MYSQL_USER: speakverse
+          MYSQL_PASSWORD: test_password
+          MYSQL_ROOT_PASSWORD: root_test_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_mysql
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Prepare test environment
+        run: |
+          echo "APP_ENV=testing" >> "$GITHUB_ENV"
+          echo "APP_KEY=base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" >> "$GITHUB_ENV"
+          echo "DB_CONNECTION=mysql" >> "$GITHUB_ENV"
+          echo "DB_HOST=127.0.0.1" >> "$GITHUB_ENV"
+          echo "DB_PORT=3306" >> "$GITHUB_ENV"
+          echo "DB_DATABASE=speakverse_test" >> "$GITHUB_ENV"
+          echo "DB_USERNAME=speakverse" >> "$GITHUB_ENV"
+          echo "DB_PASSWORD=test_password" >> "$GITHUB_ENV"
+      - name: Syntax checks
+        run: |
+          php -l app/Services/Orchestration/AgentOrchestrator.php
+          php -l tests/Unit/AgentOrchestratorTest.php
+          php -l tests/Feature/AgentOrchestratorWorkflowTest.php
+          php -l tests/Feature/StudentReadingOrchestratorHttpTest.php
+          php -l app/Http/Controllers/StudentReadingController.php
+      - name: Run database migrations
+        run: php artisan migrate --force
+      - name: Orchestrator unit tests
+        run: php artisan test --filter='AgentOrchestrator|StudentReadingOrchestratorHttpTest'

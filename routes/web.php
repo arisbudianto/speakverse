@@ -177,6 +177,11 @@ Route::middleware([
     )->name('student.reading.check');
 
     Route::post(
+        '/missions/unit/{lesson}/reading/orchestrate',
+        [StudentReadingController::class, 'orchestrate']
+    )->name('student.reading.orchestrate');
+
+    Route::post(
         '/missions/unit/{lesson}/reading/hint',
         [StudentReadingController::class, 'hint']
     )->name('student.reading.hint');
