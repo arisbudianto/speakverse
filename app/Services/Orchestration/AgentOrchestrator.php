@@ -7,6 +7,7 @@ use App\Services\Learning\AdaptationPolicy;
 use App\Services\Learning\DiagnosticEngine;
 use App\Services\Learning\ScaffoldingEngine;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Throwable;
@@ -28,7 +29,7 @@ final class AgentOrchestrator
      *   question: object, selected_answer: string,
      *   signals?: array, scaffolding_context: array,
      *   teacher_override?: array|null, force_template_only?: bool,
-     *   user_id?: int|null, correlation_id?: string
+     *   user_id?: int|null, correlation_id?: string, idempotency_key?: string
      * } $input
      * @return array{workflow_id:string,status:string,diagnosis:?array,decision:?array,scaffolding:?array,trace:array}
      */
@@ -40,7 +41,48 @@ final class AgentOrchestrator
             throw new InvalidArgumentException('question, selected_answer and scaffolding_context are required.');
         }
 
+        // Idempotency is opt-in and scoped to the authenticated learner.
+        $requestKey = $input['idempotency_key'] ?? null;
+        if ($requestKey !== null && (! is_string($requestKey) || strlen($requestKey) > 128
+            || $requestKey === '' || ! isset($input['user_id']) || ! is_int($input['user_id']))) {
+            throw new InvalidArgumentException('Idempotency requires a nonempty key and integer user_id.');
+        }
+
+        $scopedKey = $requestKey !== null
+            ? hash('sha256', $input['user_id'].':'.$requestKey)
+            : null;
+        $fingerprint = $scopedKey !== null
+            ? hash('sha256', serialize(array_diff_key($input, array_flip(['correlation_id', 'idempotency_key']))))
+            : null;
         $workflowId = (string) Str::uuid();
+        $claimed = false;
+        if ($scopedKey !== null) {
+            try {
+                AgentWorkflowTrace::query()->create([
+                    'workflow_id' => $workflowId,
+                    'status' => 'processing',
+                    'steps' => [],
+                    'idempotency_key' => $scopedKey,
+                    'input_fingerprint' => $fingerprint,
+                ]);
+                $claimed = true;
+            } catch (UniqueConstraintViolationException $exception) {
+                $existing = AgentWorkflowTrace::query()->where('idempotency_key', $scopedKey)->firstOrFail();
+                if (! hash_equals((string) $existing->input_fingerprint, $fingerprint)) {
+                    throw new InvalidArgumentException('Idempotency key was reused for different input.');
+                }
+
+                return $existing->result_payload ?? [
+                    'workflow_id' => $existing->workflow_id,
+                    'status' => 'processing',
+                    'diagnosis' => null,
+                    'decision' => null,
+                    'scaffolding' => null,
+                    'trace' => $existing->steps,
+                ];
+            }
+        }
+
         $trace = [];
         $diagnosis = null;
         $decision = null;
@@ -105,12 +147,29 @@ final class AgentOrchestrator
             'trace' => $trace,
         ]);
 
+        $result = [
+            'workflow_id' => $workflowId,
+            'status' => $status,
+            'diagnosis' => $diagnosis,
+            'decision' => $decision,
+            'scaffolding' => $scaffolding,
+            'trace' => $trace,
+        ];
+
         try {
-            AgentWorkflowTrace::query()->create([
-                'workflow_id' => $workflowId,
-                'status' => $status,
-                'steps' => $trace,
-            ]);
+            if ($claimed) {
+                AgentWorkflowTrace::query()->where('workflow_id', $workflowId)->update([
+                    'status' => $status,
+                    'steps' => json_encode($trace),
+                    'result_payload' => json_encode($result),
+                ]);
+            } else {
+                AgentWorkflowTrace::query()->create([
+                    'workflow_id' => $workflowId,
+                    'status' => $status,
+                    'steps' => $trace,
+                ]);
+            }
         } catch (Throwable $exception) {
             // Telemetry must not interrupt the learner's workflow.
             Log::warning('M01 trace persistence failed', [
@@ -119,13 +178,6 @@ final class AgentOrchestrator
             ]);
         }
 
-        return [
-            'workflow_id' => $workflowId,
-            'status' => $status,
-            'diagnosis' => $diagnosis,
-            'decision' => $decision,
-            'scaffolding' => $scaffolding,
-            'trace' => $trace,
-        ];
+        return $result;
     }
 }
