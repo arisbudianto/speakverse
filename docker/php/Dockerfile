@@ -26,3 +26,8 @@ RUN mkdir -p storage/framework/cache/data storage/framework/sessions storage/fra
 USER www-data
 EXPOSE 9000
 CMD ["php-fpm"]
+
+FROM nginx:1.27-alpine AS web
+COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY public /var/www/html/public
+COPY --from=assets /src/public/build /var/www/html/public/build

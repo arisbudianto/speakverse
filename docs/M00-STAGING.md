@@ -14,13 +14,13 @@ Confirm PHP extensions, build and migrations with CI before accepting M00.
 ## Local verification
 1. cp .env.staging.example .env.staging
 2. Fill APP_KEY and database passwords securely. Generate a staging APP_KEY separately.
-3. docker compose --env-file .env.staging config
-4. docker compose --env-file .env.staging build
-5. docker compose --env-file .env.staging up -d
-6. docker compose --env-file .env.staging exec app php artisan migrate --force
-7. docker compose --env-file .env.staging exec app php artisan storage:link
-8. curl -f http://127.0.0.1:8080/up
-9. Verify login, reading quiz, hints, teacher permissions, uploads, Vite assets, and Google OAuth on staging.
+3. Verify DB_PASSWORD equals STAGING_DB_PASSWORD and APP_KEY is set.\n4. docker compose --env-file .env.staging config
+5. docker compose --env-file .env.staging build
+6. docker compose --env-file .env.staging up -d
+7. docker compose --env-file .env.staging exec app php artisan migrate --force
+8. Ensure persistent storage is linked in the app image or deployment bootstrap; do not run storage:link without checking volume permissions.
+9. curl -f http://127.0.0.1:8080/up
+10. Verify login, reading quiz, hints, teacher permissions, uploads, Vite assets, and Google OAuth on staging.
 
 Note: MySQL application password must equal DB_PASSWORD in .env.staging.
 The database volume persists; changing MYSQL_PASSWORD does not reset an existing user.
