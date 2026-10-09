@@ -26,11 +26,62 @@ class AgentOrchestratorTest extends TestCase
                 $table->uuid('workflow_id')->unique();
                 $table->string('status', 20);
                 $table->json('steps');
+                $table->string('idempotency_key', 64)->nullable()->unique();
+                $table->string('input_fingerprint', 64)->nullable();
+                $table->json('result_payload')->nullable();
                 $table->timestamps();
             });
         }
     }
 
+
+    public function test_repeated_idempotent_request_replays_without_rerunning_agents(): void
+    {
+        $diagnostic = Mockery::mock(DiagnosticEngine::class);
+        $policy = Mockery::mock(AdaptationPolicy::class);
+        $scaffolding = Mockery::mock(ScaffoldingEngine::class);
+        $diagnostic->shouldReceive('classify')->once()->andReturn(['error_code' => null]);
+        $policy->shouldReceive('decideHintLevel')->once()->andReturn(['level' => 0, 'reasons' => []]);
+        $scaffolding->shouldNotReceive('generate');
+
+        $orchestrator = new AgentOrchestrator($diagnostic, $policy, $scaffolding);
+        $input = [
+            'question' => (object) ['correct_answer' => 'A'],
+            'selected_answer' => 'A',
+            'scaffolding_context' => [],
+            'user_id' => 42,
+            'idempotency_key' => 'hint-request-123',
+        ];
+        $first = $orchestrator->run($input);
+        $second = $orchestrator->run($input);
+
+        $this->assertSame($first['workflow_id'], $second['workflow_id']);
+        $this->assertSame($first['trace'], $second['trace']);
+        $this->assertSame(1, AgentWorkflowTrace::query()->whereNotNull('idempotency_key')->count());
+        $this->assertStringNotContainsString('hint-request-123', json_encode(AgentWorkflowTrace::first()->toArray()));
+    }
+
+    public function test_idempotency_key_rejects_changed_input(): void
+    {
+        $diagnostic = Mockery::mock(DiagnosticEngine::class);
+        $policy = Mockery::mock(AdaptationPolicy::class);
+        $scaffolding = Mockery::mock(ScaffoldingEngine::class);
+        $diagnostic->shouldReceive('classify')->once()->andReturn(['error_code' => null]);
+        $policy->shouldReceive('decideHintLevel')->once()->andReturn(['level' => 0, 'reasons' => []]);
+        $orchestrator = new AgentOrchestrator($diagnostic, $policy, $scaffolding);
+        $input = [
+            'question' => (object) ['correct_answer' => 'A'],
+            'selected_answer' => 'A',
+            'scaffolding_context' => [],
+            'user_id' => 42,
+            'idempotency_key' => 'same-key',
+        ];
+        $orchestrator->run($input);
+        $input['selected_answer'] = 'B';
+
+        $this->expectException(InvalidArgumentException::class);
+        $orchestrator->run($input);
+    }
 
     public function test_trace_is_persisted_with_no_student_answer_or_passage(): void
     {
