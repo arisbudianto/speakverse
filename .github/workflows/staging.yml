@@ -1,0 +1,20 @@
+name: Staging release gate
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  staging-gate:
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check release prerequisites
+        run: |
+          test -f composer.lock
+          test -f package-lock.json
+          test -f compose.yaml
+          echo "Gate completed; no server deployment is configured."
+      - name: Explain deployment status
+        run: echo "Manual approval and server credentials are required before deployment."

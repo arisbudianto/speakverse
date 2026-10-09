@@ -27,3 +27,8 @@ elect(*
 *.log
 .DS_Store
 Thumbs.db
+
+# M00 staging credentials
+.env.staging
+.env.staging.*
+!.env.staging.example
