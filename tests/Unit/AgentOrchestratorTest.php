@@ -10,9 +10,12 @@ use InvalidArgumentException;
 use App\Models\AgentWorkflowTrace;
 use Mockery;
 use Tests\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class AgentOrchestratorTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_trace_is_persisted_with_no_student_answer_or_passage(): void
     {
         $diagnostic = Mockery::mock(DiagnosticEngine::class);
