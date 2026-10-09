@@ -60,4 +60,4 @@ jobs:
       - name: Verify Laravel boot inside image
         run: |
           docker run --rm -e APP_ENV=testing -e APP_KEY=base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= speakverse:m00 php artisan about --only=environment
-          docker run --rm -e APP_ENV=testing -e APP_KEY=base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= speakverse:m00 php artisan route:list --compact
+          docker run --rm -e APP_ENV=testing -e APP_KEY=base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= speakverse:m00 php artisan route:list
