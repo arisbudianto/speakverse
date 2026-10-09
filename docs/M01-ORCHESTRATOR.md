@@ -15,5 +15,8 @@ Call `app(App\\Services\\Orchestration\\AgentOrchestrator::class)->run($input)` 
 ## Verification
 Run `php artisan migrate --force` and `php artisan test --filter=AgentOrchestratorTest` with a dedicated test database. The M01 GitHub Actions workflow provisions MySQL 8.4. Tests cover routing, teacher override propagation, skipping unnecessary scaffolding, invalid input, failure handling, and durable trace persistence.
 
+## Increment: scoped idempotency and integration verification
+Optional `idempotency_key` requires an integer `user_id` supplied by a trusted caller. A SHA-256 scoped key and input fingerprint are stored; identical requests replay the stored result without rerunning agents, while changed inputs using the same key are rejected. A concurrent duplicate may receive `processing` until the first run completes. Keys must be derived from authenticated server-side identity; never trust a client-supplied `user_id`. A MySQL-backed feature test covers real diagnosis and adaptation with deterministic scaffolding and persisted replay. The existing reading controller is not yet wired to this orchestrator; this test is a service-level integration test, not an HTTP end-to-end test. The full learner-facing workflow remains unverified.
+
 ## Not yet implemented
-Idempotency, timeout/retry policy, resumable workflow state, assessment agent, learner-modeling agent, integration with live controllers, teacher dashboard, and end-to-end workflow tests. These require subsequent M01 increments and are not claimed complete.
+Recovery for abandoned `processing` claims, timeout/retry policy, resumable workflow state, assessment agent, learner-modeling agent, integration with live controllers, teacher dashboard, and HTTP end-to-end workflow tests. These require subsequent M01 increments and are not claimed complete.
