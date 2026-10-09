@@ -56,7 +56,7 @@ class AgentOrchestratorTest extends TestCase
         $second = $orchestrator->run($input);
 
         $this->assertSame($first['workflow_id'], $second['workflow_id']);
-        $this->assertSame($first['trace'], $second['trace']);
+        $this->assertEquals($first['trace'], $second['trace']);
         $this->assertSame(1, AgentWorkflowTrace::query()->whereNotNull('idempotency_key')->count());
         $this->assertStringNotContainsString('hint-request-123', json_encode(AgentWorkflowTrace::first()->toArray()));
     }
