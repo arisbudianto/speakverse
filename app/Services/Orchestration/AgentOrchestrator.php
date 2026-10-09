@@ -119,7 +119,13 @@ final class AgentOrchestrator
             ]);
         }
 
-        return compact('workflowId', 'status', 'diagnosis', 'decision', 'scaffolding', 'trace')
-            + ['workflow_id' => $workflowId];
+        return [
+            'workflow_id' => $workflowId,
+            'status' => $status,
+            'diagnosis' => $diagnosis,
+            'decision' => $decision,
+            'scaffolding' => $scaffolding,
+            'trace' => $trace,
+        ];
     }
 }
