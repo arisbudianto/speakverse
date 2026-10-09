@@ -49,7 +49,9 @@ jobs:
           php -l app/Services/Orchestration/AgentOrchestrator.php
           php -l tests/Unit/AgentOrchestratorTest.php
           php -l tests/Feature/AgentOrchestratorWorkflowTest.php
+          php -l tests/Feature/StudentReadingOrchestratorHttpTest.php
+          php -l app/Http/Controllers/StudentReadingController.php
       - name: Run database migrations
         run: php artisan migrate --force
       - name: Orchestrator unit tests
-        run: php artisan test --filter=AgentOrchestrator
+        run: php artisan test --filter='AgentOrchestrator|StudentReadingOrchestratorHttpTest'
