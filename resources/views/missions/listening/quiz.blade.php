@@ -212,6 +212,40 @@
                                         @endif
                                     @endforeach
                                 </div>
+
+                                {{-- Saran perbaikan Modul 5 (perluasan ke Listening) --}}
+                                <p class="lq-answer-error" data-answer-error hidden>
+                                    Please select one answer before checking.
+                                </p>
+
+                                <div class="lq-check-row" data-check-row>
+                                    <button type="button" class="lq-check-btn" data-check-btn>
+                                        Check
+                                    </button>
+
+                                    <button type="button" class="lq-hint-btn" data-hint-btn>
+                                        💡 I need a hint
+                                    </button>
+
+                                    <span class="lq-checks-remaining" data-checks-remaining hidden></span>
+                                </div>
+
+                                <div class="lq-feedback" data-feedback hidden></div>
+
+                                <div class="lq-hint-panel" data-hint-panel hidden>
+                                    <p class="lq-hint-label" data-hint-error-label></p>
+                                    <div class="lq-hint-history" data-hint-history></div>
+                                    <div class="lq-hint-socratic" data-hint-socratic hidden>
+                                        <textarea
+                                            class="lq-hint-socratic-input"
+                                            data-socratic-input
+                                            rows="2"
+                                            placeholder="Tulis jawaban singkatmu di sini..."></textarea>
+                                        <button type="button" class="lq-hint-socratic-submit" data-socratic-submit>
+                                            Kirim Jawaban
+                                        </button>
+                                    </div>
+                                </div>
                             </article>
                         @endforeach
                     </div>
@@ -242,6 +276,7 @@
                         <button
                             id="listeningQuizSubmitButton"
                             type="button"
+                            disabled
                             style="
                                 background-color: #059669 !important;
                                 background-image: linear-gradient(
@@ -269,7 +304,7 @@
                             </svg>
 
                             <span id="submitBtnText">
-                                Submit Semua Jawaban
+                                Finish Quiz
                             </span>
                         </button>
                     </div>
@@ -289,7 +324,7 @@
                         Quiz Selesai!
                     </h2>
 
-                    <p class="result-description">
+                    <p class="result-description" id="finalMessage">
                         Jawaban kamu telah berhasil disimpan.
                     </p>
 
@@ -305,6 +340,15 @@
                 </div>
 
                 <div class="result-actions">
+                    <a
+                        href="#"
+                        id="reviewLink"
+                        class="result-secondary-button"
+                        hidden
+                    >
+                        Lihat Pembahasan
+                    </a>
+
                     <a
                         href="{{ route('student.listening', $lesson) }}"
                         class="result-secondary-button"
@@ -1316,221 +1360,228 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Saran perbaikan Modul 5 (perluasan ke Listening) — Check/Hint
+        |--------------------------------------------------------------------------
+        */
+
+        #listeningQuizPage .lq-answer-error {
+            margin: 10px 0 0;
+            color: #dc2626 !important;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        #listeningQuizPage .lq-check-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        #listeningQuizPage .lq-check-btn,
+        #listeningQuizPage .lq-hint-btn,
+        #listeningQuizPage .lq-hint-socratic-submit {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            min-height: 42px;
+            padding: 10px 18px;
+
+            border-radius: 12px;
+            border: 1px solid transparent;
+
+            font-size: 13px;
+            font-weight: 800;
+            cursor: pointer;
+
+            transition: transform 160ms ease, filter 160ms ease;
+        }
+
+        #listeningQuizPage .lq-check-btn {
+            background-image: linear-gradient(135deg, #10b981 0%, #047857 100%) !important;
+            color: #ffffff !important;
+            border-color: #047857 !important;
+        }
+
+        #listeningQuizPage .lq-check-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            filter: brightness(1.05);
+        }
+
+        #listeningQuizPage .lq-hint-btn {
+            border-color: var(--purple-border) !important;
+            background-color: var(--purple-background) !important;
+            color: var(--purple-text) !important;
+        }
+
+        #listeningQuizPage .lq-hint-btn:hover:not(:disabled) {
+            filter: brightness(1.03);
+        }
+
+        #listeningQuizPage .lq-check-btn:disabled,
+        #listeningQuizPage .lq-hint-btn:disabled,
+        #listeningQuizPage .lq-hint-socratic-submit:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        #listeningQuizPage .lq-checks-remaining {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--muted-text) !important;
+        }
+
+        #listeningQuizPage .lq-feedback {
+            margin-top: 12px;
+            padding: 11px 14px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        #listeningQuizPage .lq-feedback.is-correct {
+            background-color: #dcfce7 !important;
+            color: #166534 !important;
+        }
+
+        #listeningQuizPage .lq-feedback.is-incorrect {
+            background-color: #fef2f2 !important;
+            color: #991b1b !important;
+        }
+
+        #listeningQuizPage .lq-feedback.is-locked {
+            background-color: var(--soft-background) !important;
+            color: var(--muted-text) !important;
+        }
+
+        html.dark #listeningQuizPage .lq-feedback.is-correct,
+        .dark #listeningQuizPage .lq-feedback.is-correct {
+            background-color: rgba(22, 163, 74, 0.18) !important;
+            color: #86efac !important;
+        }
+
+        html.dark #listeningQuizPage .lq-feedback.is-incorrect,
+        .dark #listeningQuizPage .lq-feedback.is-incorrect {
+            background-color: rgba(220, 38, 38, 0.18) !important;
+            color: #fca5a5 !important;
+        }
+
+        #listeningQuizPage .lq-hint-panel {
+            margin-top: 12px;
+            padding: 14px;
+            border: 1px solid var(--purple-border);
+            border-radius: 16px;
+            background-color: var(--purple-background) !important;
+        }
+
+        #listeningQuizPage .lq-hint-label {
+            margin: 0 0 8px;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--purple-text) !important;
+        }
+
+        #listeningQuizPage .lq-hint-history {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        #listeningQuizPage .lq-hint-item {
+            padding: 9px 12px;
+            border-radius: 10px;
+            background-color: var(--card-background) !important;
+            border: 1px solid var(--card-border);
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--muted-text) !important;
+        }
+
+        #listeningQuizPage .lq-hint-item-level {
+            display: inline-block;
+            margin-bottom: 4px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background-color: #9333ea;
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 900;
+        }
+
+        #listeningQuizPage .lq-hint-socratic {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        #listeningQuizPage .lq-hint-socratic-input {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            background-color: var(--card-background) !important;
+            color: var(--page-text) !important;
+            font-size: 12px;
+            resize: vertical;
+        }
+
+        #listeningQuizPage .lq-hint-socratic-submit {
+            align-self: flex-start;
+            background-color: var(--card-background) !important;
+            color: var(--page-text) !important;
+            border-color: var(--card-border) !important;
+        }
     </style>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const completeUrl = @json(
-                route('student.listening.complete', $lesson)
-            );
+            const maxChecksPerQuestion = {{ (int) config('learning.scoring.max_checks_per_question', 3) }};
 
+            const checkUrl = @json(route('student.listening.check', $lesson));
+            const hintUrl = @json(route('student.listening.hint', $lesson));
+            const finishUrl = @json(route('student.listening.finish', $lesson));
+            const shownUrl = @json(route('student.listening.shown', $lesson));
+            const abandonUrl = @json(route('student.listening.abandon', $lesson));
+
+            // Modul 1 — Interaction Logger: sesi kuis ini (null kalau
+            // logging gagal dibuka server-side, mis. tidak ada soal).
+            const quizSessionId = @json($quizSessionId ?? null);
             const csrfToken = @json(csrf_token());
 
+            const cards = Array.from(document.querySelectorAll('#listeningQuizPage .question-item'));
             const quizCard = document.getElementById('quizCard');
             const resultSection = document.getElementById('resultSection');
             const finalScore = document.getElementById('finalScore');
+            const finalMessage = document.getElementById('finalMessage');
+            const reviewLink = document.getElementById('reviewLink');
 
-            const submitBtn = document.getElementById(
-                'listeningQuizSubmitButton'
-            );
+            const finishBtn = document.getElementById('listeningQuizSubmitButton');
+            const finishBtnText = document.getElementById('submitBtnText');
+            const finishBtnIcon = document.getElementById('submitButtonIcon');
 
-            const submitBtnText = document.getElementById(
-                'submitBtnText'
-            );
-
-            const submitButtonIcon = document.getElementById(
-                'submitButtonIcon'
-            );
-
-            const validationMessage = document.getElementById(
-                'quizValidationMessage'
-            );
-
-            const validationText = document.getElementById(
-                'quizValidationText'
-            );
-
-            const questionItems = document.querySelectorAll(
-                '#listeningQuizPage .question-item'
-            );
-
-            const radioInputs = document.querySelectorAll(
-                '#listeningQuizPage .answer-list input[type="radio"]'
-            );
-
-            /*
-             * Fallback tambahan agar style global tidak dapat
-             * membuat tombol transparan.
-             */
-            function forceSubmitButtonStyle() {
-                if (!submitBtn || submitBtn.disabled) {
-                    return;
-                }
-
-                submitBtn.style.setProperty(
-                    'background-color',
-                    '#059669',
-                    'important'
-                );
-
-                submitBtn.style.setProperty(
-                    'background-image',
-                    'linear-gradient(135deg, #10b981 0%, #059669 48%, #047857 100%)',
-                    'important'
-                );
-
-                submitBtn.style.setProperty(
-                    'border-color',
-                    '#047857',
-                    'important'
-                );
-
-                submitBtn.style.setProperty(
-                    'color',
-                    '#ffffff',
-                    'important'
-                );
-
-                submitBtn.style.setProperty(
-                    '-webkit-text-fill-color',
-                    '#ffffff',
-                    'important'
-                );
-
-                submitBtn.style.setProperty(
-                    'opacity',
-                    '1',
-                    'important'
-                );
-
-                submitBtn.style.setProperty(
-                    'visibility',
-                    'visible',
-                    'important'
-                );
-            }
-
-            forceSubmitButtonStyle();
-
-            /*
-             * Memastikan style tetap benar ketika theme diganti.
-             */
-            const themeObserver = new MutationObserver(function () {
-                forceSubmitButtonStyle();
-            });
-
-            themeObserver.observe(document.documentElement, {
-                attributes: true,
-                attributeFilter: ['class']
-            });
-
-            /*
-             * Mengatur tampilan jawaban yang dipilih.
-             */
-            radioInputs.forEach(function (radio) {
-                radio.addEventListener('change', function () {
-                    const answerList = radio.closest('.answer-list');
-                    const questionCard = radio.closest('.question-item');
-
-                    if (answerList) {
-                        answerList
-                            .querySelectorAll('.answer-option')
-                            .forEach(function (optionLabel) {
-                                optionLabel.classList.remove(
-                                    'is-selected'
-                                );
-                            });
-                    }
-
-                    const selectedLabel = radio.closest('.answer-option');
-
-                    if (selectedLabel) {
-                        selectedLabel.classList.add('is-selected');
-                    }
-
-                    if (questionCard) {
-                        questionCard.classList.remove('is-unanswered');
-                    }
-
-                    if (validationMessage) {
-                        validationMessage.classList.add('is-hidden');
-                    }
-                });
-            });
-
-            if (!submitBtn) {
+            if (cards.length === 0 || !finishBtn) {
                 return;
             }
 
-            submitBtn.addEventListener('click', async function () {
-                const answers = {};
+            // Semua soal tampil sekaligus di halaman ini, jadi "waktu
+            // soal pertama tampil" = saat halaman selesai dimuat, sama
+            // untuk semua soal.
+            const pageLoadedAt = Date.now();
+            let quizFinished = false;
 
-                let unansweredCount = 0;
-                let firstUnansweredQuestion = null;
-
-                questionItems.forEach(function (item) {
-                    const questionId = item.dataset.questionId;
-
-                    const selectedAnswer = item.querySelector(
-                        'input[name="question_' +
-                        questionId +
-                        '"]:checked'
-                    );
-
-                    item.classList.remove('is-unanswered');
-
-                    if (!selectedAnswer) {
-                        unansweredCount += 1;
-                        item.classList.add('is-unanswered');
-
-                        if (!firstUnansweredQuestion) {
-                            firstUnansweredQuestion = item;
-                        }
-
-                        return;
-                    }
-
-                    answers[questionId] = selectedAnswer.value;
-                });
-
-                if (unansweredCount > 0) {
-                    if (validationText) {
-                        validationText.textContent =
-                            'Masih ada ' +
-                            unansweredCount +
-                            ' soal yang belum dijawab.';
-                    }
-
-                    if (validationMessage) {
-                        validationMessage.classList.remove('is-hidden');
-                    }
-
-                    if (firstUnansweredQuestion) {
-                        firstUnansweredQuestion.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'center'
-                        });
-                    }
-
-                    return;
-                }
-
-                if (validationMessage) {
-                    validationMessage.classList.add('is-hidden');
-                }
-
-                submitBtn.disabled = true;
-
-                if (submitBtnText) {
-                    submitBtnText.textContent = 'Menyimpan Jawaban...';
-                }
-
-                if (submitButtonIcon) {
-                    submitButtonIcon.style.display = 'none';
-                }
-
-                try {
-                    const response = await fetch(completeUrl, {
+            // Saran perbaikan Modul 1: beri tahu server bahwa SEMUA
+            // soal sudah tampil sekarang, supaya response_ms nanti
+            // dihitung dari jam SERVER. Fire-and-forget per soal.
+            if (quizSessionId) {
+                cards.forEach(function (card) {
+                    const questionId = card.dataset.questionId;
+                    fetch(shownUrl, {
                         method: 'POST',
                         headers: {
                             'X-CSRF-TOKEN': csrfToken,
@@ -1538,48 +1589,365 @@
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            answers: answers
+                            quiz_session_id: quizSessionId,
+                            question_id: Number(questionId)
+                        }),
+                        keepalive: true
+                    }).catch(function (error) {
+                        console.warn('markShown gagal (tidak fatal):', error);
+                    });
+                });
+            }
+
+            // Saran perbaikan Modul 1: catat 'abandon' kalau siswa
+            // menutup tab / pindah halaman SEBELUM Finish.
+            window.addEventListener('pagehide', function () {
+                if (quizFinished || !quizSessionId) {
+                    return;
+                }
+                const data = new URLSearchParams();
+                data.append('_token', csrfToken);
+                data.append('quiz_session_id', quizSessionId);
+                navigator.sendBeacon(abandonUrl, data);
+            });
+
+            const state = {};
+            cards.forEach(function (card) {
+                state[card.dataset.questionId] = {
+                    locked: false,
+                    isCorrect: null,
+                    checksUsed: 0,
+                    checksRemaining: maxChecksPerQuestion,
+                    socraticStep: 0
+                };
+            });
+
+            let isChecking = false;
+            let isRequestingHint = false;
+            let isFinishing = false;
+
+            function getSelectedAnswer(card) {
+                const questionId = card.dataset.questionId;
+                return card.querySelector('input[name="question_' + questionId + '"]:checked');
+            }
+
+            function setOptionsDisabled(card, disabled) {
+                card.querySelectorAll('.answer-radio').forEach(function (input) {
+                    input.disabled = disabled;
+                });
+            }
+
+            function clearError(card) {
+                const error = card.querySelector('[data-answer-error]');
+                if (error) {
+                    error.hidden = true;
+                }
+            }
+
+            function showError(card) {
+                const error = card.querySelector('[data-answer-error]');
+                if (error) {
+                    error.hidden = false;
+                }
+            }
+
+            function updateFinishAvailability() {
+                const allLocked = cards.every(function (card) {
+                    const s = state[card.dataset.questionId];
+                    return s && s.locked;
+                });
+                finishBtn.disabled = !allLocked;
+            }
+
+            function renderCardState(card) {
+                const questionId = card.dataset.questionId;
+                const qState = state[questionId];
+
+                const checkBtn = card.querySelector('[data-check-btn]');
+                const hintBtn = card.querySelector('[data-hint-btn]');
+                const checksRemainingEl = card.querySelector('[data-checks-remaining]');
+                const feedbackEl = card.querySelector('[data-feedback]');
+
+                setOptionsDisabled(card, qState.locked);
+
+                if (qState.checksUsed === 0) {
+                    checkBtn.hidden = false;
+                    checkBtn.disabled = false;
+                    checkBtn.textContent = 'Check';
+                    checksRemainingEl.hidden = true;
+                    feedbackEl.hidden = true;
+                    hintBtn.hidden = false;
+                    updateFinishAvailability();
+                    return;
+                }
+
+                checksRemainingEl.hidden = false;
+                checksRemainingEl.textContent = qState.checksRemaining > 0
+                    ? qState.checksRemaining + ' check' + (qState.checksRemaining === 1 ? '' : 's') + ' left'
+                    : 'No checks left';
+
+                feedbackEl.hidden = false;
+
+                if (qState.isCorrect) {
+                    feedbackEl.className = 'lq-feedback is-correct';
+                    feedbackEl.textContent = 'Correct! This question is locked in.';
+                    checkBtn.hidden = true;
+                    hintBtn.hidden = true;
+                } else if (qState.locked) {
+                    feedbackEl.className = 'lq-feedback is-locked';
+                    feedbackEl.textContent = "You've used all your checks for this question. You can still read hints to understand it.";
+                    checkBtn.hidden = true;
+                    hintBtn.hidden = false;
+                } else {
+                    feedbackEl.className = 'lq-feedback is-incorrect';
+                    feedbackEl.textContent = 'Not quite — try again, or ask for a hint.';
+                    checkBtn.hidden = false;
+                    checkBtn.disabled = false;
+                    checkBtn.textContent = 'Check Again';
+                    hintBtn.hidden = false;
+                }
+
+                updateFinishAvailability();
+            }
+
+            async function performCheck(card) {
+                if (isChecking) {
+                    return;
+                }
+
+                const questionId = card.dataset.questionId;
+                const selected = getSelectedAnswer(card);
+
+                if (!selected) {
+                    showError(card);
+                    return;
+                }
+                clearError(card);
+
+                const checkBtn = card.querySelector('[data-check-btn]');
+                isChecking = true;
+                checkBtn.disabled = true;
+                checkBtn.textContent = 'Checking...';
+
+                try {
+                    const response = await fetch(checkUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            quiz_session_id: quizSessionId,
+                            question_id: Number(questionId),
+                            selected_answer: selected.value,
+                            response_ms: Date.now() - pageLoadedAt
                         })
                     });
 
-                    const result = await response
-                        .json()
-                        .catch(function () {
-                            return {};
-                        });
+                    const result = await response.json();
 
-                    if (!response.ok || result.success !== true) {
-                        let errorMessage =
-                            result.message ||
-                            'Jawaban gagal disimpan. Silakan coba lagi.';
-
-                        if (result.errors) {
-                            const firstError = Object.values(
-                                result.errors
-                            )[0];
-
-                            if (
-                                Array.isArray(firstError) &&
-                                firstError.length > 0
-                            ) {
-                                errorMessage = firstError[0];
-                            }
-                        }
-
-                        throw new Error(errorMessage);
+                    if (!response.ok) {
+                        throw new Error(result.message || 'Could not check this answer.');
                     }
+
+                    state[questionId] = {
+                        locked: Boolean(result.locked),
+                        isCorrect: Boolean(result.is_correct),
+                        checksUsed: result.checks_used,
+                        checksRemaining: result.checks_remaining,
+                        socraticStep: state[questionId].socraticStep
+                    };
+
+                    renderCardState(card);
+                } catch (error) {
+                    console.error('Listening check error:', error);
+                    alert(error.message || 'Could not check this answer. Please try again.');
+                    const qState = state[questionId];
+                    checkBtn.disabled = false;
+                    checkBtn.textContent = qState.checksUsed > 0 ? 'Check Again' : 'Check';
+                } finally {
+                    isChecking = false;
+                }
+            }
+
+            function appendHintHistoryItem(card, levelLabel, text) {
+                const history = card.querySelector('[data-hint-history]');
+                const item = document.createElement('div');
+                item.className = 'lq-hint-item';
+
+                const badge = document.createElement('span');
+                badge.className = 'lq-hint-item-level';
+                badge.textContent = levelLabel;
+
+                const body = document.createElement('div');
+                body.textContent = text;
+
+                item.appendChild(badge);
+                item.appendChild(body);
+                history.appendChild(item);
+            }
+
+            async function requestHint(card, socraticAnswer, socraticStep) {
+                if (isRequestingHint) {
+                    return;
+                }
+
+                const questionId = card.dataset.questionId;
+                const hintBtn = card.querySelector('[data-hint-btn]');
+                const hintPanel = card.querySelector('[data-hint-panel]');
+                const hintErrorLabel = card.querySelector('[data-hint-error-label]');
+                const hintSocratic = card.querySelector('[data-hint-socratic]');
+                const socraticInput = card.querySelector('[data-socratic-input]');
+                const socraticSubmitBtn = card.querySelector('[data-socratic-submit]');
+
+                isRequestingHint = true;
+                hintBtn.disabled = true;
+                socraticSubmitBtn.disabled = true;
+
+                try {
+                    const payload = {
+                        quiz_session_id: quizSessionId,
+                        question_id: Number(questionId)
+                    };
+                    if (socraticAnswer !== undefined) {
+                        payload.socratic_answer = socraticAnswer;
+                        payload.socratic_step = socraticStep;
+                    }
+
+                    const response = await fetch(hintUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(result.message || 'Could not load a hint right now.');
+                    }
+
+                    hintPanel.hidden = false;
+                    hintErrorLabel.textContent = result.error_hint_label || '';
+                    hintErrorLabel.hidden = !result.error_hint_label;
+
+                    if (result.socratic_complete === true) {
+                        appendHintHistoryItem(
+                            card,
+                            'L3',
+                            "You've worked through all the guiding questions. Try selecting your answer again!"
+                        );
+                        hintSocratic.hidden = true;
+                    } else if (result.socratic_question) {
+                        appendHintHistoryItem(card, 'L3 · Q' + (result.socratic_step + 1), result.socratic_question);
+                        state[questionId].socraticStep = result.socratic_step;
+                        hintSocratic.hidden = false;
+                        socraticInput.value = '';
+                        socraticInput.focus();
+                    } else if (result.hint_text) {
+                        appendHintHistoryItem(card, 'L' + result.level, result.hint_text);
+                        hintSocratic.hidden = true;
+                    }
+                } catch (error) {
+                    console.error('Listening hint error:', error);
+                    alert(error.message || 'Could not load a hint right now. Please try again.');
+                } finally {
+                    isRequestingHint = false;
+                    hintBtn.disabled = false;
+                    socraticSubmitBtn.disabled = false;
+                }
+            }
+
+            cards.forEach(function (card) {
+                card.querySelectorAll('.answer-radio').forEach(function (input) {
+                    input.addEventListener('change', function () {
+                        const answerList = input.closest('.answer-list');
+                        if (answerList) {
+                            answerList.querySelectorAll('.answer-option').forEach(function (label) {
+                                label.classList.remove('is-selected');
+                            });
+                        }
+                        const selectedLabel = input.closest('.answer-option');
+                        if (selectedLabel) {
+                            selectedLabel.classList.add('is-selected');
+                        }
+                        clearError(card);
+                    });
+                });
+
+                card.querySelector('[data-check-btn]').addEventListener('click', function () {
+                    performCheck(card);
+                });
+
+                card.querySelector('[data-hint-btn]').addEventListener('click', function () {
+                    requestHint(card);
+                });
+
+                card.querySelector('[data-socratic-submit]').addEventListener('click', function () {
+                    const socraticInput = card.querySelector('[data-socratic-input]');
+                    const answer = socraticInput.value.trim();
+                    if (answer === '') {
+                        socraticInput.focus();
+                        return;
+                    }
+                    const questionId = card.dataset.questionId;
+                    requestHint(card, answer, state[questionId].socraticStep);
+                });
+            });
+
+            finishBtn.addEventListener('click', async function () {
+                if (isFinishing || finishBtn.disabled) {
+                    return;
+                }
+
+                isFinishing = true;
+                finishBtn.disabled = true;
+                if (finishBtnText) {
+                    finishBtnText.textContent = 'Saving result...';
+                }
+                if (finishBtnIcon) {
+                    finishBtnIcon.style.display = 'none';
+                }
+
+                try {
+                    const response = await fetch(finishUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            quiz_session_id: quizSessionId
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.message || 'The result could not be saved.');
+                    }
+
+                    quizFinished = true;
 
                     if (finalScore) {
                         finalScore.textContent = result.score ?? 0;
                     }
+                    if (finalMessage) {
+                        finalMessage.textContent = result.message || 'Jawaban kamu telah berhasil disimpan.';
+                    }
+                    if (reviewLink && result.review_url) {
+                        reviewLink.href = result.review_url;
+                        reviewLink.hidden = false;
+                    }
 
-                    document
-                        .querySelectorAll(
-                            '#listeningQuizPage audio'
-                        )
-                        .forEach(function (audio) {
-                            audio.pause();
-                        });
+                    document.querySelectorAll('#listeningQuizPage audio').forEach(function (audio) {
+                        audio.pause();
+                    });
 
                     if (quizCard) {
                         quizCard.classList.add('is-hidden');
@@ -1587,36 +1955,24 @@
 
                     if (resultSection) {
                         resultSection.classList.remove('is-hidden');
-
-                        resultSection.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
+                        resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                 } catch (error) {
-                    console.error(
-                        'Listening quiz submission error:',
-                        error
-                    );
-
-                    alert(
-                        error.message ||
-                        'Terjadi kesalahan saat menyimpan jawaban.'
-                    );
-
-                    submitBtn.disabled = false;
-
-                    if (submitBtnText) {
-                        submitBtnText.textContent =
-                            'Submit Semua Jawaban';
+                    console.error('Listening finish error:', error);
+                    alert(error.message || 'The result could not be saved. Please try again.');
+                    isFinishing = false;
+                    finishBtn.disabled = false;
+                    if (finishBtnText) {
+                        finishBtnText.textContent = 'Finish Quiz';
                     }
-
-                    if (submitButtonIcon) {
-                        submitButtonIcon.style.display = '';
+                    if (finishBtnIcon) {
+                        finishBtnIcon.style.display = '';
                     }
-
-                    forceSubmitButtonStyle();
                 }
+            });
+
+            cards.forEach(function (card) {
+                renderCardState(card);
             });
         });
     </script>

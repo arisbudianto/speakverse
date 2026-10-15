@@ -403,7 +403,9 @@ class VocabularyPretestController extends Controller
             $question->id,
             null,
             'vocabulary',
-            $override['level_override'] ?? null
+            $override['level_override'] ?? null,
+            // Saran perbaikan Modul 4: fading lintas sesi.
+            Auth::id()
         );
         $level = $decision['level'];
 
@@ -754,9 +756,6 @@ class VocabularyPretestController extends Controller
                     ? "{$totalNeedsWork}/{$totalQuestions} soal masih perlu diperbaiki."
                     : 'Pretest selesai.';
             } else {
-                $dominantCode = $wrongFirstAttemptsByCode->sortDesc()->keys()->first();
-                $dominantCount = $wrongFirstAttemptsByCode[$dominantCode];
-
                 $labels = [
                     'lexical' => 'soal tentang arti kata (lexical)',
                     'inferential' => 'soal yang butuh menyimpulkan dari konteks',
@@ -771,10 +770,22 @@ class VocabularyPretestController extends Controller
                     'context_misconception' => 'Coba fokus pada konteks yang diberikan, bukan makna umum yang biasa kamu pakai.',
                 ];
 
-                $label = $labels[$dominantCode] ?? $dominantCode;
+                // Saran perbaikan Modul 5: sebutkan SEMUA jenis error
+                // yang ditemukan (diurutkan dari paling sering),
+                // bukan cuma satu yang paling dominan.
+                $sortedByCount = $wrongFirstAttemptsByCode->sortDesc();
+
+                $breakdownParts = [];
+                foreach ($sortedByCount as $code => $count) {
+                    $label = $labels[$code] ?? $code;
+                    $breakdownParts[] = "{$count}x {$label}";
+                }
+                $breakdown = implode(', ', $breakdownParts);
+
+                $dominantCode = $sortedByCount->keys()->first();
                 $strategy = $strategies[$dominantCode] ?? '';
 
-                $base = "{$dominantCount}/{$totalQuestions} {$label} masih lemah. {$strategy}";
+                $base = "{$totalNeedsWork}/{$totalQuestions} soal masih perlu diperbaiki ({$breakdown}). {$strategy}";
             }
         }
 

@@ -29,7 +29,20 @@ class ListeningQuestion extends Model
          * inference, vocabulary_in_context
          */
         'sub_skill',
+
+        // Modul 5 (perluasan ke Listening) — kolom diagnostik Modul 2.
+        'error_if_wrong',
+        'error_labels_source',
+        'rationale',
+        'text_span',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'error_if_wrong' => 'array',
+        ];
+    }
 
     public function material()
     {

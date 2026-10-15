@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Teacher\DashboardController as TeacherDashboardController;
 use App\Http\Controllers\Staff\ClassRosterController;
 use App\Http\Controllers\Staff\ClassResultsController;
+use App\Http\Controllers\Staff\NotificationController;
 
 use App\Http\Controllers\Admin\ReadingMaterialController;
 use App\Http\Controllers\Admin\ReadingQuestionController;
@@ -141,6 +142,42 @@ Route::middleware([
         [StudentListeningController::class, 'complete']
     )->name('student.listening.complete');
 
+    /*
+    |--------------------------------------------------------------------------
+    | Modul 5 (perluasan ke Listening) — In-Quiz Tutor UX
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post(
+        '/missions/unit/{lesson}/listening/check',
+        [StudentListeningController::class, 'check']
+    )->name('student.listening.check');
+
+    Route::post(
+        '/missions/unit/{lesson}/listening/hint',
+        [StudentListeningController::class, 'hint']
+    )->name('student.listening.hint');
+
+    Route::post(
+        '/missions/unit/{lesson}/listening/finish',
+        [StudentListeningController::class, 'finish']
+    )->name('student.listening.finish');
+
+    Route::post(
+        '/missions/unit/{lesson}/listening/shown',
+        [StudentListeningController::class, 'markShown']
+    )->name('student.listening.shown');
+
+    Route::post(
+        '/missions/unit/{lesson}/listening/abandon',
+        [StudentListeningController::class, 'abandon']
+    )->name('student.listening.abandon');
+
+    Route::get(
+        '/missions/unit/{lesson}/listening/review/{submission}',
+        [StudentListeningController::class, 'review']
+    )->name('student.listening.review');
+
 
     /*
     |--------------------------------------------------------------------------
@@ -235,6 +272,26 @@ Route::middleware([
         [StudentWritingController::class, 'submit']
     )->name('student.writing.submit');
 
+    /*
+    |--------------------------------------------------------------------------
+    | Saran perbaikan Modul 5 (Writing) — Bantu Pahami Feedback
+    |--------------------------------------------------------------------------
+    */
+    Route::post(
+        '/missions/unit/{lesson}/writing/submission/{submission}/explain-feedback',
+        [StudentWritingController::class, 'explainFeedback']
+    )->name('student.writing.explainFeedback');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Saran perbaikan Modul 5 (Writing) — Bantuan Sebelum Menulis
+    |--------------------------------------------------------------------------
+    */
+    Route::post(
+        '/missions/unit/{lesson}/writing/pre-task-help',
+        [StudentWritingController::class, 'preTaskHelp']
+    )->name('student.writing.preTaskHelp');
+
 
     /*
     |--------------------------------------------------------------------------
@@ -256,6 +313,26 @@ Route::middleware([
         '/missions/unit/{lesson}/speaking/{material}/submit',
         [StudentSpeakingController::class, 'submit']
     )->name('student.speaking.submit');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Saran perbaikan Modul 5 (Speaking) — Bantu Pahami Feedback
+    |--------------------------------------------------------------------------
+    */
+    Route::post(
+        '/missions/unit/{lesson}/speaking/submission/{submission}/explain-feedback',
+        [StudentSpeakingController::class, 'explainFeedback']
+    )->name('student.speaking.explainFeedback');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Saran perbaikan Modul 5 (Speaking) — Bantuan Sebelum Merekam
+    |--------------------------------------------------------------------------
+    */
+    Route::post(
+        '/missions/unit/{lesson}/speaking/pre-task-help',
+        [StudentSpeakingController::class, 'preTaskHelp']
+    )->name('student.speaking.preTaskHelp');
 
 
     /*
@@ -735,6 +812,7 @@ Route::middleware([
         Route::get('/classes/show', [ClassRosterController::class, 'show'])->name('staff.classes.show');
         Route::get('/classes/results', [ClassResultsController::class, 'show'])->name('staff.classes.results');
         Route::get('/classes/results/export', [ClassResultsController::class, 'export'])->name('staff.classes.results.export');
+        Route::get('/classes/students/{student}/detail', [ClassResultsController::class, 'studentDetail'])->name('staff.classes.students.detail');
 
         /*
         |--------------------------------------------------------------------------
@@ -743,6 +821,16 @@ Route::middleware([
         */
         Route::post('/classes/overrides', [ClassResultsController::class, 'storeOverride'])->name('staff.classes.overrides.store');
         Route::delete('/classes/overrides/{policy}', [ClassResultsController::class, 'destroyOverride'])->name('staff.classes.overrides.destroy');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Saran perbaikan Modul 6 — notifikasi otomatis ke guru
+        |--------------------------------------------------------------------------
+        */
+        Route::get('/notifications', [NotificationController::class, 'index'])->name('staff.notifications.index');
+        Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('staff.notifications.read');
+        Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('staff.notifications.readAll');
+
         Route::post('/classes/import', [ClassRosterController::class, 'import'])->name('staff.classes.import');
         Route::post('/classes/students', [ClassRosterController::class, 'storeStudent'])->name('staff.classes.students.store');
         Route::put('/classes/students/{user}', [ClassRosterController::class, 'updateStudent'])->name('staff.classes.students.update');

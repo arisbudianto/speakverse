@@ -9,6 +9,8 @@ use App\Models\UserLessonProgress;
 use App\Models\WritingMaterial;
 use App\Models\WritingSubmission;
 use App\Services\GamificationService;
+use App\Services\Learning\FeedbackExplainer;
+use App\Services\Learning\PreTaskScaffoldService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -452,6 +454,66 @@ class StudentWritingController extends Controller
     /**
      * Evaluasi Writing dengan Dinoiki/OpenAI-compatible API.
      */
+    /**
+     * Saran perbaikan Modul 5 (Writing — Opsi 2: "Bantuan Sebelum
+     * Menulis"). Dipanggil SEBELUM siswa submit apa pun — tidak
+     * menyentuh submit()/scoreWritingWithAi() sama sekali.
+     */
+    public function preTaskHelp(Lesson $lesson, PreTaskScaffoldService $scaffoldService): JsonResponse
+    {
+        $material = WritingMaterial::with('questions')
+            ->where('lesson_id', $lesson->id)
+            ->first();
+
+        abort_unless($material, 404);
+
+        $question = $material->questions->first();
+
+        abort_unless($question, 404);
+
+        $result = $scaffoldService->suggest('writing', (string) $question->question);
+
+        if ($result === null) {
+            return response()->json([
+                'message' => 'Bantuan tidak tersedia saat ini.',
+            ], 503);
+        }
+
+        return response()->json($result);
+    }
+
+    /**
+     * Saran perbaikan Modul 5 (Writing — Opsi 3: "Bantu Pahami
+     * Feedback"). TIDAK menyentuh submit() atau scoreWritingWithAi()
+     * sama sekali — murni membaca feedback yang SUDAH tersimpan dari
+     * submission yang sudah ada, lalu menyederhanakannya.
+     */
+    public function explainFeedback(
+        Lesson $lesson,
+        AssessmentSubmission $submission,
+        FeedbackExplainer $feedbackExplainer
+    ): JsonResponse {
+        abort_unless($submission->user_id === Auth::id(), 403);
+        abort_unless(
+            $submission->lesson_id === $lesson->id && $submission->skill === 'writing',
+            404
+        );
+
+        $result = $feedbackExplainer->explain(
+            (string) $submission->feedback,
+            $submission->final_score !== null ? (int) $submission->final_score : null,
+            'writing'
+        );
+
+        if ($result === null) {
+            return response()->json([
+                'message' => 'Penjelasan tidak tersedia saat ini. Silakan baca feedback aslinya di atas.',
+            ], 503);
+        }
+
+        return response()->json($result);
+    }
+
     private function scoreWritingWithAi(
         string $question,
         ?string $image,

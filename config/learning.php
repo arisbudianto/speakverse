@@ -34,6 +34,13 @@ return [
         'fading_streak' => 2,
         'fading_max_level' => 1,
 
+        // Saran perbaikan: fading sekarang LINTAS SESI (lihat
+        // AdaptationPolicy::isFadingActive()) — angka ini membatasi
+        // berapa baris learning_events MENTAH yang diambil sebelum
+        // dikelompokkan per (sesi, soal), supaya query tetap ringan
+        // walau riwayat siswa sudah sangat panjang.
+        'fading_lookback_limit' => 200,
+
         // Batas atas level bantuan yang ada di sistem.
         'max_level' => 3,
 

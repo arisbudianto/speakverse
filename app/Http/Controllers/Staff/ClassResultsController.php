@@ -7,8 +7,10 @@ use App\Models\AssessmentSubmission;
 use App\Models\Lesson;
 use App\Models\LearningEvent;
 use App\Models\TeacherScaffoldingPolicy;
+use App\Models\Unit;
 use App\Models\User;
 use App\Models\UserLessonProgress;
+use App\Services\Learning\CefrBandResolver;
 use App\Services\Learning\DiagnosticEngine;
 use App\Support\SimpleXlsxWriter;
 use Illuminate\Http\RedirectResponse;
@@ -29,6 +31,124 @@ class ClassResultsController extends Controller
         return view('staff.classes.results', $report);
     }
 
+    /**
+     * Saran perbaikan: halaman detail SATU siswa — skor per tahap
+     * kurikulum (Pretest, Unit 1-4, Posttest) x skill, plus analisis
+     * belajar dari data Modul 1-4 (Interaction Logger, Diagnostic
+     * Engine, hint usage, CEFR band) yang sebelumnya cuma
+     * ditampilkan agregat per kelas, sekarang bisa dilihat per
+     * siswa.
+     */
+    public function studentDetail(User $student, DiagnosticEngine $diagnosticEngine, CefrBandResolver $cefrBandResolver): View
+    {
+        abort_unless($student->role === 'student', 404);
+
+        $class = [
+            'school' => $student->school,
+            'major' => $student->major,
+            'grade' => $student->grade,
+            'parallel' => $student->parallel,
+        ];
+
+        $this->authorizeClass($class);
+
+        /*
+        |--------------------------------------------------------------------------
+        | 1. Skor per tahap kurikulum (Pretest, Unit 1-4, Posttest) x skill
+        |--------------------------------------------------------------------------
+        */
+        $units = Unit::query()->orderBy('order_number')->get();
+
+        $submissions = AssessmentSubmission::query()
+            ->where('user_id', $student->id)
+            ->orderByDesc('id')
+            ->get();
+
+        // Kunci "unit_id:skill" -> skor TERBARU (submissions sudah
+        // diurutkan terbaru dulu, jadi entri pertama yang ditemukan
+        // per kunci itulah yang dipakai).
+        $latestScoreByUnitSkill = [];
+        foreach ($submissions as $submission) {
+            $key = $submission->unit_id . ':' . $submission->skill;
+            if (! array_key_exists($key, $latestScoreByUnitSkill)) {
+                $latestScoreByUnitSkill[$key] = $submission->final_score;
+            }
+        }
+
+        $skills = ['listening', 'reading', 'writing', 'speaking'];
+
+        $scoreGrid = [];
+        foreach ($units as $unit) {
+            $scores = [];
+            foreach ($skills as $skill) {
+                $scores[$skill] = $latestScoreByUnitSkill[$unit->id . ':' . $skill] ?? null;
+            }
+            $scoreGrid[] = [
+                'unit' => $unit,
+                'scores' => $scores,
+            ];
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | 2. Analisis belajar — dari data Modul 1-4, khusus siswa ini
+        |--------------------------------------------------------------------------
+        */
+        $cefrBand = $cefrBandResolver->resolveForStudent($student);
+
+        // errorFrequency() aslinya dipakai per kelas di buildReport()
+        // (khusus skill='reading') — di sini dipanggil 3x (reading,
+        // vocabulary, listening) untuk SATU siswa, hasilnya digabung.
+        $errorFrequency = [];
+        foreach (['reading', 'vocabulary', 'listening'] as $skill) {
+            foreach ($diagnosticEngine->errorFrequency([$student->id], $skill) as $code => $count) {
+                $errorFrequency[$code] = ($errorFrequency[$code] ?? 0) + $count;
+            }
+        }
+        arsort($errorFrequency);
+
+        $errorCodeLabels = [
+            'lexical' => 'Lexical',
+            'inferential' => 'Inferential',
+            'syntactic' => 'Syntactic',
+            'context_misconception' => 'Context Misconception',
+        ];
+
+        $hintCountsByLevel = LearningEvent::query()
+            ->where('user_id', $student->id)
+            ->where('event_type', 'hint_request')
+            ->whereNotNull('hint_level_shown')
+            ->selectRaw('hint_level_shown, count(*) as total')
+            ->groupBy('hint_level_shown')
+            ->pluck('total', 'hint_level_shown');
+
+        $firstAttempts = LearningEvent::query()
+            ->where('user_id', $student->id)
+            ->whereIn('event_type', ['select', 'revise'])
+            ->where('attempt_no', 1)
+            ->get();
+
+        $totalAttempted = $firstAttempts->count();
+        $totalCorrectFirstAttempt = $firstAttempts->where('is_correct', true)->count();
+        $firstAttemptAccuracy = $totalAttempted > 0
+            ? round($totalCorrectFirstAttempt / $totalAttempted * 100, 1)
+            : null;
+
+        return view('staff.classes.student-detail', [
+            'student' => $student,
+            'scoreGrid' => $scoreGrid,
+            'skills' => $skills,
+            'cefrBand' => $cefrBand,
+            'errorFrequency' => $errorFrequency,
+            'errorCodeLabels' => $errorCodeLabels,
+            'errorFrequencyTotal' => array_sum($errorFrequency),
+            'hintCountsByLevel' => $hintCountsByLevel,
+            'totalAttempted' => $totalAttempted,
+            'totalCorrectFirstAttempt' => $totalCorrectFirstAttempt,
+            'firstAttemptAccuracy' => $firstAttemptAccuracy,
+        ]);
+    }
+
     public function export(Request $request, DiagnosticEngine $diagnosticEngine)
     {
         $class = $this->validatedClass($request);
@@ -40,6 +160,7 @@ class ClassResultsController extends Controller
             'XP', 'Level', 'Listening', 'Reading', 'Writing', 'Speaking',
             'Rata-rata Pretest', 'Rata-rata Posttest', 'Pelajaran Selesai',
             'Status Penyelesaian', 'Waktu Pengerjaan (Akun Dibuat → Selesai Semua Unit)',
+            'Posisi Sekarang', 'Progres Per Tahap (skill selesai dari 4)',
         ];
 
         $rows = [];
@@ -62,6 +183,8 @@ class ClassResultsController extends Controller
                 $row['completed_lessons'],
                 $row['is_fully_completed'] ? 'Selesai semua unit' : 'Belum selesai semua unit',
                 $row['is_fully_completed'] ? ($row['duration_label'] ?? '-') : '-',
+                $row['stage_text'],
+                collect($row['stages'])->map(fn ($st) => $st['short'] . ' ' . $st['done'] . '/4')->implode(' | '),
             ];
         }
 
@@ -107,7 +230,7 @@ class ClassResultsController extends Controller
             'disable_llm' => (bool) ($validated['disable_llm'] ?? false),
             'note' => $validated['note'] ?? null,
             'expires_at' => isset($validated['expires_in_days'])
-                ? now()->addDays($validated['expires_in_days'])
+                ? now()->addDays((int) $validated['expires_in_days'])
                 : null,
         ];
 
@@ -164,6 +287,10 @@ class ClassResultsController extends Controller
 
         $this->authorizeClass($class);
 
+        // Saran perbaikan Modul 6: catat SIAPA yang menghapus sebelum
+        // soft-delete — supaya muncul di "Riwayat Kebijakan yang
+        // Dihapus" nanti.
+        $policy->update(['deleted_by' => Auth::id()]);
         $policy->delete();
 
         return back()->with('success', 'Kebijakan bantuan AI dihapus.');
@@ -225,7 +352,12 @@ class ClassResultsController extends Controller
         if ($ids->isNotEmpty()) {
             $inferentialWrongByStudent = LearningEvent::query()
                 ->whereIn('user_id', $ids)
-                ->where('skill', 'reading')
+                // Saran perbaikan Modul 6: sebelumnya cuma
+                // skill='reading' — Vocabulary Pretest dan Listening
+                // (Modul 5 diperluas ke situ) sekarang ikut dihitung,
+                // supaya siswa yang lemah di Vocabulary/Listening
+                // tidak "tersembunyi" dari daftar Perlu Intervensi.
+                ->whereIn('skill', ['reading', 'vocabulary', 'listening'])
                 ->whereIn('event_type', ['select', 'revise'])
                 ->where('attempt_no', 1)
                 ->where('is_correct', false)
@@ -274,6 +406,39 @@ class ClassResultsController extends Controller
             ->orderByDesc('id')
             ->get();
 
+        /*
+        |--------------------------------------------------------------------------
+        | Saran perbaikan Modul 6 — riwayat kebijakan yang dihapus
+        |--------------------------------------------------------------------------
+        |
+        | onlyTrashed() lewat SoftDeletes — ambil beberapa yang
+        | terakhir dihapus untuk kelas ini, supaya guru bisa lihat
+        | "kebijakan ini pernah ada, dihapus oleh siapa & kapan".
+        | Dibatasi 20 baris terakhir supaya tidak menumpuk tak
+        | terbatas di halaman ini seiring waktu.
+        */
+        $deletedPolicies = TeacherScaffoldingPolicy::onlyTrashed()
+            ->where(function ($query) use ($class, $ids) {
+                $query->where(function ($q) use ($class) {
+                    $q->where('scope_type', 'class')
+                        ->where('school', $class['school'])
+                        ->where('major', $class['major'])
+                        ->where('grade', $class['grade'])
+                        ->where('parallel', $class['parallel']);
+                });
+
+                if ($ids->isNotEmpty()) {
+                    $query->orWhere(function ($q) use ($ids) {
+                        $q->where('scope_type', 'student')
+                            ->whereIn('student_id', $ids);
+                    });
+                }
+            })
+            ->with(['student:id,name', 'teacher:id,name', 'deletedBy:id,name'])
+            ->orderByDesc('deleted_at')
+            ->limit(20)
+            ->get();
+
         $submissions = collect();
         $progress = collect();
 
@@ -311,6 +476,25 @@ class ClassResultsController extends Controller
         $bands = ['belum' => 0, 'berkembang' => 0, 'mahir' => 0];
         $weeklyBucket = [];
         $remedialStudents = [];
+
+        // Daftar tahap kurikulum (Pretest, Unit 1-4, Posttest) berurutan.
+        $stageDefs = [];
+        foreach (Unit::query()->orderBy('order_number')->get() as $u) {
+            if ($u->type === 'pretest') {
+                $stageDefs[] = ['unit_id' => $u->id, 'type' => 'pretest', 'label' => 'Pretest', 'short' => 'Pre'];
+            } elseif ($u->type === 'posttest') {
+                $stageDefs[] = ['unit_id' => $u->id, 'type' => 'posttest', 'label' => 'Posttest', 'short' => 'Post'];
+            } else {
+                $n = count(array_filter($stageDefs, fn ($d) => $d['type'] === 'unit')) + 1;
+                $stageDefs[] = ['unit_id' => $u->id, 'type' => 'unit', 'label' => 'Modul ' . $n, 'short' => 'M' . $n];
+            }
+        }
+        $stageDistribution = ['Belum mulai' => 0];
+        foreach ($stageDefs as $d) {
+            $stageDistribution[$d['label']] = 0;
+        }
+        $stageDistribution['Selesai semua'] = 0;
+        $skillKeys = ['listening', 'reading', 'writing', 'speaking'];
 
         foreach ($students as $student) {
             $userSubs = $submissions->get($student->id, collect());
@@ -355,10 +539,20 @@ class ClassResultsController extends Controller
                     ->diffInSeconds($lastCompletedAt);
             }
 
+            $completedSkillCount = collect($skills)->filter(fn ($v) => $v !== null)->count();
             $avgFour = collect($skills)->filter(fn ($v) => $v !== null)->avg();
-            if ($avgFour === null) {
+
+            // Saran perbaikan: sebelumnya siswa yang BARU
+            // menyelesaikan SEBAGIAN skill (mis. cuma Reading, dengan
+            // skor bagus) bisa langsung masuk "Mahir" — karena
+            // rata-rata cuma dihitung dari skill yang SUDAH ada
+            // skornya, skill yang belum disentuh sama sekali tidak
+            // ikut "menurunkan" rata-rata. Sekarang "Mahir"
+            // mensyaratkan KEEMPAT skill sudah dikerjakan DAN
+            // rata-ratanya >= 70.
+            if ($completedSkillCount === 0) {
                 $bands['belum']++;
-            } elseif ($avgFour < 70) {
+            } elseif ($completedSkillCount < 4 || $avgFour < 70) {
                 $bands['berkembang']++;
             } else {
                 $bands['mahir']++;
@@ -382,18 +576,44 @@ class ClassResultsController extends Controller
             }
 
             $weakSkills = [];
+            $notAttemptedSkills = [];
             foreach ($skills as $skillName => $skillScore) {
-                if ($skillScore !== null && $skillScore < 70) {
+                if ($skillScore === null) {
+                    $notAttemptedSkills[] = $skillName;
+                } elseif ($skillScore < 70) {
                     $weakSkills[] = $skillName;
                 }
             }
-            if ($avgFour === null || $weakSkills !== []) {
+
+            // Saran perbaikan: skill yang BELUM DIKERJAKAN sama
+            // sekali sekarang ikut memicu masuk daftar remedial —
+            // sebelumnya cuma skor rendah yang terdeteksi, skill
+            // yang belum disentuh "tersembunyi" begitu siswa sudah
+            // punya skor di skill lain.
+            if ($weakSkills !== [] || $notAttemptedSkills !== []) {
+                if (count($notAttemptedSkills) === 4) {
+                    // Belum menyentuh apa pun — pesan ringkas seperti semula.
+                    $reason = 'Belum ada skor AI/tes yang terekam.';
+                    $weakSkillsForAction = ['belum mengerjakan'];
+                    $notAttemptedForAction = [];
+                } else {
+                    $reasonParts = [];
+                    if ($weakSkills !== []) {
+                        $reasonParts[] = 'skor di bawah 70 pada ' . implode(', ', $weakSkills);
+                    }
+                    if ($notAttemptedSkills !== []) {
+                        $reasonParts[] = 'belum dikerjakan: ' . implode(', ', $notAttemptedSkills);
+                    }
+                    $reason = 'Perlu perhatian — ' . implode('; ', $reasonParts) . '.';
+                    $weakSkillsForAction = $weakSkills;
+                    $notAttemptedForAction = $notAttemptedSkills;
+                }
+
                 $remedialStudents[] = [
                     'name' => $student->name,
-                    'weak_skills' => $avgFour === null ? ['belum mengerjakan'] : $weakSkills,
-                    'reason' => $avgFour === null
-                        ? 'Belum ada skor AI/tes yang terekam.'
-                        : 'Skor di bawah 70 pada: ' . implode(', ', $weakSkills),
+                    'weak_skills' => $weakSkillsForAction,
+                    'not_attempted_skills' => $notAttemptedForAction,
+                    'reason' => $reason,
                 ];
             }
 
@@ -401,6 +621,62 @@ class ClassResultsController extends Controller
             $hintL3Count = (int) ($hintL3ByStudent[$student->id] ?? 0);
             $needsIntervention = $inferentialWrong > $inferentialThreshold
                 || $hintL3Count >= $hintL3Threshold;
+
+            // Posisi siswa sekarang: tahap pertama yang belum lengkap 4 skill.
+            $userProgress = $progress->get($student->id, collect());
+            $stageInfo = [];
+            $currentLabel = null;
+            $currentDone = 0;
+            $anyDone = false;
+            foreach ($stageDefs as $d) {
+                $doneSkills = [];
+                foreach ($skillKeys as $sk) {
+                    if ($d['type'] === 'unit') {
+                        $ok = $userProgress->contains(function ($r) use ($d, $sk) {
+                            return (int) $r->unit_id === (int) $d['unit_id']
+                                && $r->skill_type === $sk
+                                && (empty($r->status) || $r->status === 'completed');
+                        });
+                    } else {
+                        $ok = $userSubs->contains(function ($r) use ($d, $sk) {
+                            return (int) $r->unit_id === (int) $d['unit_id']
+                                && $r->skill === $sk
+                                && $r->status === 'completed'
+                                && $r->final_score !== null;
+                        });
+                    }
+                    if ($ok) {
+                        $doneSkills[] = $sk;
+                    }
+                }
+                $cnt = count($doneSkills);
+                if ($cnt > 0) {
+                    $anyDone = true;
+                }
+                $stageInfo[] = [
+                    'label' => $d['label'],
+                    'short' => $d['short'],
+                    'done' => $cnt,
+                    'skills' => $doneSkills,
+                ];
+                if ($currentLabel === null && $cnt < 4) {
+                    $currentLabel = $d['label'];
+                    $currentDone = $cnt;
+                }
+            }
+            $stageAllDone = $stageDefs !== [] && $currentLabel === null;
+            if ($stageAllDone) {
+                $stageDistribution['Selesai semua']++;
+            } elseif (! $anyDone) {
+                $stageDistribution['Belum mulai']++;
+            } else {
+                $stageDistribution[$currentLabel]++;
+            }
+            $pretestStage = collect($stageInfo)->firstWhere('short', 'Pre');
+            $posttestStage = collect($stageInfo)->firstWhere('short', 'Post');
+            $stageText = $stageAllDone
+                ? 'Selesai semua'
+                : (! $anyDone ? 'Belum mulai' : $currentLabel . ' (' . $currentDone . '/4)');
 
             $rows[] = [
                 'id' => $student->id,
@@ -418,6 +694,14 @@ class ClassResultsController extends Controller
                 'speaking' => $skills['speaking'],
                 'pretest_avg' => $pre !== null ? round($pre, 1) : null,
                 'posttest_avg' => $post !== null ? round($post, 1) : null,
+                'pretest_done' => $pretestStage['done'] ?? 0,
+                'posttest_done' => $posttestStage['done'] ?? 0,
+                'stage_text' => $stageText,
+                'stage_current' => $stageAllDone ? 'Selesai semua' : (! $anyDone ? 'Belum mulai' : $currentLabel),
+                'stage_current_done' => $currentDone,
+                'stage_all_done' => $stageAllDone,
+                'stage_started' => $anyDone,
+                'stages' => $stageInfo,
                 'completed_lessons' => $completed,
                 'total_curriculum_lessons' => $totalCurriculumLessons,
                 'is_fully_completed' => $isFullyCompleted,
@@ -470,6 +754,12 @@ class ClassResultsController extends Controller
             $actions = [];
             foreach ($item['weak_skills'] as $weakSkill) {
                 $actions[] = $skillAdvice[$weakSkill] ?? $skillAdvice['belum mengerjakan'];
+            }
+            // Saran perbaikan: skill yang belum disentuh dapat aksi
+            // "mulai kerjakan", beda dari skill yang sudah dicoba
+            // tapi nilainya masih rendah (dapat aksi remedial konten).
+            foreach (($item['not_attempted_skills'] ?? []) as $notAttemptedSkill) {
+                $actions[] = 'Ingatkan siswa untuk segera mengerjakan ' . ucfirst($notAttemptedSkill) . '.';
             }
             $remediations[] = [
                 'title' => $item['name'] . ' — ' . $item['reason'],
@@ -529,6 +819,7 @@ class ClassResultsController extends Controller
                 'weekly_scores' => $weeklyScores,
                 'remediations' => $remediations,
                 'total_curriculum_lessons' => $totalCurriculumLessons,
+                'stage_distribution' => $stageDistribution,
                 'fastest_completion' => $fastestCompletion,
                 'completed_count' => count($fastestCompletion),
 
@@ -542,6 +833,7 @@ class ClassResultsController extends Controller
                 'inferential_threshold' => $inferentialThreshold,
                 'hint_l3_threshold' => $hintL3Threshold,
                 'active_policies' => $activePolicies,
+                'deleted_policies' => $deletedPolicies,
             ],
         ];
     }

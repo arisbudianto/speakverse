@@ -68,24 +68,60 @@
     </div>
 
     <div class="mb-8 grid gap-6 lg:grid-cols-2">
-        <div class="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="flex h-[520px] flex-col rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
             <h2 class="mb-4 text-lg font-black">Tren mingguan</h2>
             @if (!empty($analysis['weekly_labels']))
-                <canvas id="weeklyTrendChart" height="180"></canvas>
+                <div class="relative min-h-0 flex-1">
+                    <canvas id="weeklyTrendChart"></canvas>
+                </div>
             @else
                 <p class="text-sm text-slate-500">Belum ada cukup data bertanggal. Setelah 2–3 minggu submit, grafik akan terisi.</p>
             @endif
         </div>
-        <div class="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 class="mb-4 text-lg font-black">Rekomendasi remedial otomatis</h2>
-            <ul class="space-y-3 text-sm">
-                @foreach (($analysis['remediations'] ?? []) as $item)
-                    <li class="rounded-2xl bg-slate-50 p-4">
+        @php $remediationItems = array_values($analysis['remediations'] ?? []); @endphp
+        <div class="flex h-[520px] flex-col rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="mb-4 flex items-center justify-between gap-2">
+                <h2 class="text-lg font-black">Rekomendasi remedial otomatis</h2>
+                <span class="text-xs font-semibold text-slate-400">{{ count($remediationItems) }} rekomendasi</span>
+            </div>
+            <ul id="remediationList" class="min-h-0 flex-1 space-y-3 overflow-y-auto text-sm">
+                @foreach ($remediationItems as $item)
+                    <li class="remediation-item rounded-2xl bg-slate-50 p-4">
                         <p class="font-bold text-slate-800">{{ $item['title'] }}</p>
                         <p class="mt-1 text-slate-600">{{ $item['action'] }}</p>
                     </li>
                 @endforeach
             </ul>
+            @if (count($remediationItems) > 5)
+                <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-sm">
+                    <button type="button" id="remPrev" class="rounded-xl border border-slate-200 px-3 py-1.5 font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-40">← Sebelumnya</button>
+                    <span id="remInfo" class="text-xs font-semibold text-slate-500"></span>
+                    <button type="button" id="remNext" class="rounded-xl border border-slate-200 px-3 py-1.5 font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-40">Berikutnya →</button>
+                </div>
+                <script>
+                    (function () {
+                        const items = Array.from(document.querySelectorAll('#remediationList .remediation-item'));
+                        const perPage = 5;
+                        const pages = Math.ceil(items.length / perPage);
+                        let page = 1;
+                        const prev = document.getElementById('remPrev');
+                        const next = document.getElementById('remNext');
+                        const info = document.getElementById('remInfo');
+                        function render() {
+                            items.forEach(function (li, i) {
+                                li.style.display = (i >= (page - 1) * perPage && i < page * perPage) ? '' : 'none';
+                            });
+                            info.textContent = 'Hal. ' + page + ' dari ' + pages;
+                            prev.disabled = page <= 1;
+                            next.disabled = page >= pages;
+                            document.getElementById('remediationList').scrollTop = 0;
+                        }
+                        prev.addEventListener('click', function () { if (page > 1) { page--; render(); } });
+                        next.addEventListener('click', function () { if (page < pages) { page++; render(); } });
+                        render();
+                    })();
+                </script>
+            @endif
         </div>
     </div>
 
@@ -109,6 +145,8 @@
                         }]
                     },
                     options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
                         plugins: { legend: { display: false } },
                         scales: { y: { suggestedMin: 0, suggestedMax: 100 } }
                     }
@@ -366,6 +404,69 @@
                 </button>
             </form>
         </div>
+
+        {{-- Saran perbaikan Modul 6 — riwayat kebijakan yang dihapus --}}
+        @if ($analysis['deleted_policies']->isNotEmpty())
+            <details class="mt-6 rounded-2xl border border-slate-200 p-4">
+                <summary class="cursor-pointer text-sm font-bold text-slate-600">
+                    Riwayat Kebijakan yang Dihapus ({{ $analysis['deleted_policies']->count() }})
+                </summary>
+
+                <div class="mt-3 space-y-2">
+                    @foreach ($analysis['deleted_policies'] as $policy)
+                        <div class="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-xs text-slate-500">
+                            <span class="font-bold text-slate-700">
+                                {{ $policy->scope_type === 'class' ? 'Seluruh kelas' : ($policy->student->name ?? 'Siswa dihapus') }}
+                            </span>
+
+                            <div class="mt-1 flex flex-wrap gap-2">
+                                @if ($policy->freeze_level)
+                                    <span class="rounded-full bg-red-100 px-2 py-0.5 font-bold text-red-700">Kunci L{{ $policy->freeze_level }}</span>
+                                @endif
+                                @if ($policy->max_level)
+                                    <span class="rounded-full bg-amber-100 px-2 py-0.5 font-bold text-amber-700">Maks L{{ $policy->max_level }}</span>
+                                @endif
+                                @if ($policy->min_level)
+                                    <span class="rounded-full bg-blue-100 px-2 py-0.5 font-bold text-blue-700">Min L{{ $policy->min_level }}</span>
+                                @endif
+                                @if ($policy->require_hint_before_recheck)
+                                    <span class="rounded-full bg-purple-100 px-2 py-0.5 font-bold text-purple-700">Wajib hint sebelum ulang</span>
+                                @endif
+                                @if ($policy->disable_llm)
+                                    <span class="rounded-full bg-slate-200 px-2 py-0.5 font-bold text-slate-700">LLM nonaktif</span>
+                                @endif
+                            </div>
+
+                            @if ($policy->note)
+                                <p class="mt-1 italic">"{{ $policy->note }}"</p>
+                            @endif
+
+                            <p class="mt-1 text-[11px] text-slate-400">
+                                Dibuat oleh {{ $policy->teacher->name ?? '-' }}
+                                · Dihapus oleh {{ $policy->deletedBy->name ?? '-' }}
+                                pada {{ $policy->deleted_at?->format('d M Y, H:i') }}
+                            </p>
+                        </div>
+                    @endforeach
+                </div>
+            </details>
+        @endif
+    </div>
+
+    <div class="mb-4 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+        <p class="text-sm font-bold text-slate-700">Sebaran posisi siswa saat ini</p>
+        <div class="mt-3 flex flex-wrap gap-2">
+            @foreach (($analysis['stage_distribution'] ?? []) as $stageName => $stageCount)
+                <span class="rounded-full border px-3 py-1 text-xs font-bold
+                    {{ $stageName === 'Selesai semua' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : ($stageName === 'Belum mulai' ? 'border-slate-200 bg-slate-50 text-slate-500' : 'border-cyan-200 bg-cyan-50 text-cyan-700') }}">
+                    {{ $stageName }}: {{ $stageCount }} siswa
+                </span>
+            @endforeach
+        </div>
+        <p class="mt-3 text-xs text-slate-400">
+            Posisi = tahap pertama yang belum lengkap 4 skill (Listening, Reading, Writing, Speaking). "(2/4)" berarti 2 dari 4 skill di tahap itu sudah selesai.
+            Kolom L/R/W/S menampilkan skor terbaru dari tahap mana pun.
+        </p>
     </div>
 
     <div class="overflow-x-auto rounded-[28px] border border-slate-200 bg-white shadow-sm">
@@ -373,11 +474,13 @@
             <thead class="bg-slate-50 font-bold text-slate-500">
                 <tr>
                     <th class="px-4 py-3">Nama</th>
+                    <th class="px-4 py-3">Posisi Sekarang</th>
+                    <th class="px-4 py-3">Progres per Tahap</th>
                     <th class="px-4 py-3">XP</th>
-                    <th class="px-4 py-3">L</th>
-                    <th class="px-4 py-3">R</th>
-                    <th class="px-4 py-3">W</th>
-                    <th class="px-4 py-3">S</th>
+                    <th class="px-4 py-3" title="Listening (skor terbaru)">L</th>
+                    <th class="px-4 py-3" title="Reading (skor terbaru)">R</th>
+                    <th class="px-4 py-3" title="Writing (skor terbaru)">W</th>
+                    <th class="px-4 py-3" title="Speaking (skor terbaru)">S</th>
                     <th class="px-4 py-3">Pre</th>
                     <th class="px-4 py-3">Post</th>
                     <th class="px-4 py-3">Selesai</th>
@@ -387,14 +490,39 @@
             <tbody>
                 @forelse ($rows as $row)
                     <tr class="border-t border-slate-100">
-                        <td class="px-4 py-3 font-semibold">{{ $row['name'] }}</td>
+                        <td class="px-4 py-3 font-semibold">
+                            <a href="{{ route('staff.classes.students.detail', $row['id']) }}" class="text-cyan-600 hover:underline">
+                                {{ $row['name'] }}
+                            </a>
+                        </td>
+                        <td class="px-4 py-3">
+                            @if ($row['stage_all_done'])
+                                <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Selesai semua</span>
+                            @elseif (! $row['stage_started'])
+                                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">Belum mulai</span>
+                            @else
+                                <span class="whitespace-nowrap rounded-full bg-cyan-50 px-3 py-1 text-xs font-bold text-cyan-700">
+                                    {{ $row['stage_current'] }} ({{ $row['stage_current_done'] }}/4)
+                                </span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex gap-1">
+                                @foreach ($row['stages'] as $st)
+                                    <span title="{{ $st['label'] }}: {{ $st['done'] }}/4 skill selesai{{ $st['skills'] ? ' ('.implode(', ', $st['skills']).')' : '' }}"
+                                        class="rounded-md px-1.5 py-0.5 text-[10px] font-bold {{ $st['done'] >= 4 ? 'bg-emerald-100 text-emerald-700' : ($st['done'] > 0 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-400') }}">
+                                        {{ $st['short'] }} {{ $st['done'] }}
+                                    </span>
+                                @endforeach
+                            </div>
+                        </td>
                         <td class="px-4 py-3">{{ $row['xp'] }}</td>
                         <td class="px-4 py-3">{{ $row['listening'] ?? '-' }}</td>
                         <td class="px-4 py-3">{{ $row['reading'] ?? '-' }}</td>
                         <td class="px-4 py-3">{{ $row['writing'] ?? '-' }}</td>
                         <td class="px-4 py-3">{{ $row['speaking'] ?? '-' }}</td>
-                        <td class="px-4 py-3">{{ $row['pretest_avg'] ?? '-' }}</td>
-                        <td class="px-4 py-3">{{ $row['posttest_avg'] ?? '-' }}</td>
+                        <td class="px-4 py-3">{{ $row['pretest_avg'] ?? '-' }}@if ($row['pretest_avg'] !== null && $row['pretest_done'] < 4) <span class="text-[10px] text-amber-600">({{ $row['pretest_done'] }}/4)</span>@endif</td>
+                        <td class="px-4 py-3">{{ $row['posttest_avg'] ?? '-' }}@if ($row['posttest_avg'] !== null && $row['posttest_done'] < 4) <span class="text-[10px] text-amber-600">({{ $row['posttest_done'] }}/4)</span>@endif</td>
                         <td class="px-4 py-3">{{ $row['completed_lessons'] }}/{{ $row['total_curriculum_lessons'] }}</td>
                         <td class="px-4 py-3">
                             @if ($row['is_fully_completed'])
@@ -406,7 +534,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="10" class="px-4 py-10 text-center text-slate-500">Belum ada siswa di kelas ini.</td>
+                        <td colspan="12" class="px-4 py-10 text-center text-slate-500">Belum ada siswa di kelas ini.</td>
                     </tr>
                 @endforelse
             </tbody>

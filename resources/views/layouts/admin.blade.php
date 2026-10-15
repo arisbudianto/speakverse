@@ -285,6 +285,28 @@ document.documentElement.classList.toggle('dark', darkMode)"
                 <!-- RIGHT -->
                 <div class="flex items-center gap-3">
 
+                    <!-- SARAN PERBAIKAN MODUL 6 — NOTIFIKASI -->
+                    <a href="{{ route('staff.notifications.index') }}"
+                        class="relative w-12 h-12 rounded-2xl
+                        border border-slate-200 dark:border-white/10
+                        bg-white dark:bg-white/5
+                        hover:scale-105 transition-all duration-200
+                        flex items-center justify-center">
+
+                        🔔
+
+                        @php
+                            $unreadNotificationCount = auth()->user()?->unreadNotifications()->count() ?? 0;
+                        @endphp
+
+                        @if ($unreadNotificationCount > 0)
+                            <span class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center
+                                rounded-full bg-red-500 text-[10px] font-black text-white">
+                                {{ $unreadNotificationCount > 9 ? '9+' : $unreadNotificationCount }}
+                            </span>
+                        @endif
+                    </a>
+
                     <!-- DARK MODE -->
                     <button @click="darkMode = !darkMode"
                         class="w-12 h-12 rounded-2xl

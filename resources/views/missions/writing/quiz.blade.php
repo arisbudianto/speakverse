@@ -745,6 +745,44 @@
             font-weight: 620;
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Saran perbaikan Modul 5 (Writing) — Bantu Pahami Feedback
+        |--------------------------------------------------------------------------
+        */
+
+        .writing-quiz-page .wq-explain-row {
+            margin-top: 12px;
+        }
+
+        .writing-quiz-page .wq-explain-panel {
+            margin-top: 10px;
+            padding: 13px 14px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--card-soft);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .writing-quiz-page .wq-explain-label {
+            margin: 0 0 4px;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--text-muted);
+        }
+
+        .writing-quiz-page .wq-pretask-row {
+            margin-bottom: 12px;
+        }
+
+        .writing-quiz-page .wq-vocab-list {
+            margin: 0;
+            padding-left: 18px;
+            font-size: 12px;
+            line-height: 1.7;
+        }
+
         .writing-quiz-page .wq-result-actions {
             display: flex;
             justify-content: space-between;
@@ -1043,6 +1081,24 @@
 
                                 @csrf
 
+                                {{-- Saran perbaikan Modul 5 (Writing) — Bantuan Sebelum Menulis --}}
+                                <div class="wq-pretask-row">
+                                    <button type="button" id="preTaskHelpBtn" class="wq-button wq-button-secondary">
+                                        💡 Bantuan sebelum menulis
+                                    </button>
+                                </div>
+
+                                <div id="preTaskHelpPanel" class="wq-explain-panel" hidden>
+                                    <p class="wq-explain-label">Struktur teks</p>
+                                    <p id="preTaskStructureTip"></p>
+                                    <p class="wq-explain-label" style="margin-top: 10px;">Kosakata yang mungkin berguna</p>
+                                    <ul id="preTaskVocabList" class="wq-vocab-list"></ul>
+                                    <p class="wq-explain-label" style="margin-top: 10px;">Pengingat tata bahasa</p>
+                                    <p id="preTaskGrammarTip"></p>
+                                    <p class="wq-explain-label" style="margin-top: 10px;">Pengingat mechanics</p>
+                                    <p id="preTaskMechanicsTip"></p>
+                                </div>
+
                                 <div class="wq-answer-toolbar">
                                     <label
                                         for="answerInput"
@@ -1257,6 +1313,20 @@
                             class="wq-feedback">
                             -
                         </div>
+
+                        {{-- Saran perbaikan Modul 5 (Writing) — Bantu Pahami Feedback --}}
+                        <div class="wq-explain-row">
+                            <button type="button" id="explainFeedbackBtn" class="wq-button wq-button-secondary">
+                                💡 Bantu saya paham feedback ini
+                            </button>
+                        </div>
+
+                        <div id="explainFeedbackPanel" class="wq-explain-panel" hidden>
+                            <p class="wq-explain-label">Penjelasan sederhana</p>
+                            <p id="explainFeedbackText"></p>
+                            <p class="wq-explain-label" style="margin-top: 10px;">Saran untuk lain kali</p>
+                            <p id="explainFeedbackTip"></p>
+                        </div>
                     </article>
 
                     <div class="wq-result-actions">
@@ -1376,6 +1446,67 @@
                         );
 
                     let isSubmitting = false;
+                    let currentSubmissionId = null;
+
+                    // Saran perbaikan Modul 5 (Writing) — Bantuan Sebelum Menulis.
+                    const preTaskHelpBtn = document.getElementById('preTaskHelpBtn');
+                    if (preTaskHelpBtn) {
+                        preTaskHelpBtn.addEventListener('click', async function () {
+                            const tokenInput = writingForm.querySelector('input[name="_token"]');
+                            const csrfToken = tokenInput ? tokenInput.value : '';
+
+                            preTaskHelpBtn.disabled = true;
+                            preTaskHelpBtn.textContent = 'Memuat...';
+
+                            try {
+                                const response = await fetch(
+                                    @json(route('student.writing.preTaskHelp', $lesson)),
+                                    {
+                                        method: 'POST',
+                                        headers: {
+                                            'X-CSRF-TOKEN': csrfToken,
+                                            'Accept': 'application/json',
+                                            'Content-Type': 'application/json'
+                                        }
+                                    }
+                                );
+
+                                const result = await response.json();
+
+                                if (!response.ok) {
+                                    throw new Error(result.message || 'Bantuan tidak tersedia saat ini.');
+                                }
+
+                                document.getElementById('preTaskStructureTip').textContent = result.structure_tip;
+
+                                const vocabList = document.getElementById('preTaskVocabList');
+                                vocabList.innerHTML = '';
+                                (result.vocabulary_suggestions || []).forEach(function (item) {
+                                    const li = document.createElement('li');
+                                    li.textContent = item;
+                                    vocabList.appendChild(li);
+                                });
+
+                                document.getElementById('preTaskGrammarTip').textContent = result.grammar_tip;
+
+                                const mechanicsEl = document.getElementById('preTaskMechanicsTip');
+                                if (result.mechanics_tip) {
+                                    mechanicsEl.textContent = result.mechanics_tip;
+                                    mechanicsEl.hidden = false;
+                                } else {
+                                    mechanicsEl.hidden = true;
+                                }
+
+                                document.getElementById('preTaskHelpPanel').hidden = false;
+                            } catch (error) {
+                                console.error('Pre-task help error:', error);
+                                alert(error.message || 'Bantuan tidak tersedia saat ini.');
+                            } finally {
+                                preTaskHelpBtn.disabled = false;
+                                preTaskHelpBtn.textContent = '💡 Bantuan sebelum menulis';
+                            }
+                        });
+                    }
 
                     function countWords(value) {
                         const cleaned =
@@ -1534,7 +1665,60 @@
                             .textContent =
                                 result.feedback ?? '-';
 
+                        // Saran perbaikan Modul 5 (Writing) — Bantu Pahami Feedback.
+                        currentSubmissionId = result.assessment_submission_id ?? null;
+                        const explainPanel = document.getElementById('explainFeedbackPanel');
+                        if (explainPanel) {
+                            explainPanel.hidden = true;
+                        }
+
                         scrollToResult();
+                    }
+
+                    const explainFeedbackBtn = document.getElementById('explainFeedbackBtn');
+                    if (explainFeedbackBtn) {
+                        explainFeedbackBtn.addEventListener('click', async function () {
+                            if (!currentSubmissionId) {
+                                return;
+                            }
+
+                            const tokenInput = writingForm.querySelector('input[name="_token"]');
+                            const csrfToken = tokenInput ? tokenInput.value : '';
+
+                            explainFeedbackBtn.disabled = true;
+                            explainFeedbackBtn.textContent = 'Memuat...';
+
+                            try {
+                                const urlTemplate = @json(route('student.writing.explainFeedback', [$lesson, '__SUBMISSION_ID__']));
+                                const response = await fetch(
+                                    urlTemplate.replace('__SUBMISSION_ID__', currentSubmissionId),
+                                    {
+                                        method: 'POST',
+                                        headers: {
+                                            'X-CSRF-TOKEN': csrfToken,
+                                            'Accept': 'application/json',
+                                            'Content-Type': 'application/json'
+                                        }
+                                    }
+                                );
+
+                                const result = await response.json();
+
+                                if (!response.ok) {
+                                    throw new Error(result.message || 'Penjelasan tidak tersedia saat ini.');
+                                }
+
+                                document.getElementById('explainFeedbackText').textContent = result.simple_explanation;
+                                document.getElementById('explainFeedbackTip').textContent = result.tip_for_next_time;
+                                document.getElementById('explainFeedbackPanel').hidden = false;
+                            } catch (error) {
+                                console.error('Explain feedback error:', error);
+                                alert(error.message || 'Penjelasan tidak tersedia saat ini.');
+                            } finally {
+                                explainFeedbackBtn.disabled = false;
+                                explainFeedbackBtn.textContent = '💡 Bantu saya paham feedback ini';
+                            }
+                        });
                     }
 
                     answerInput.addEventListener(
