@@ -32,3 +32,6 @@ Schedule::command(NotifyTeachersOfInterventionCommand::class)->daily();
 
 // Learning Analytics: agregat harian aktivitas siswa (dini hari).
 Schedule::command('la:aggregate')->dailyAt('02:30')->withoutOverlapping();
+
+// Learning Analytics: analisis butir (mingguan, Minggu dini hari).
+Schedule::command('la:item-analysis')->weeklyOn(0, '03:15')->withoutOverlapping();
