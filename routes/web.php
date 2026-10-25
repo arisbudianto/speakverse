@@ -20,6 +20,7 @@ use App\Http\Controllers\MissionController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\LearningContentController;
 use App\Http\Controllers\Admin\AnalyticsController;
+use App\Http\Controllers\Admin\SchoolResultsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Teacher\DashboardController as TeacherDashboardController;
@@ -793,6 +794,22 @@ Route::middleware([
             '/analytics',
             [AnalyticsController::class, 'index']
         )->name('admin.analytics');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Analisis hasil belajar semua sekolah (khusus admin)
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            '/school-results',
+            [SchoolResultsController::class, 'index']
+        )->name('admin.school-results');
+
+        Route::get(
+            '/school-results/export',
+            [SchoolResultsController::class, 'export']
+        )->name('admin.school-results.export');
 
         });
 

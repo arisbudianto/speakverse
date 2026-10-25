@@ -208,6 +208,19 @@ document.documentElement.classList.toggle('dark', darkMode)"
                         <span>Analytics</span>
 
                     </a>
+
+                    <!-- HASIL BELAJAR SEMUA SEKOLAH -->
+                    <a href="{{ route('admin.school-results') }}"
+                        class="flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200 font-semibold
+                        {{ request()->routeIs('admin.school-results*')
+                            ? 'bg-cyan-500/10 text-cyan-400 shadow-lg shadow-cyan-500/5'
+                            : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300' }}">
+
+                        <span class="text-xl">🏫</span>
+
+                        <span>Hasil Sekolah</span>
+
+                    </a>
                     @endif
 
                 </nav>
