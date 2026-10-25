@@ -29,3 +29,6 @@ Artisan::command('inspire', function () {
 | — Laravel tidak punya "daemon" bawaan, hanya menunggu dipanggil.
 */
 Schedule::command(NotifyTeachersOfInterventionCommand::class)->daily();
+
+// Learning Analytics: agregat harian aktivitas siswa (dini hari).
+Schedule::command('la:aggregate')->dailyAt('02:30')->withoutOverlapping();

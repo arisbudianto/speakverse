@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\LearningContentController;
 use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\SchoolResultsController;
+use App\Http\Controllers\Admin\LearningAnalyticsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Teacher\DashboardController as TeacherDashboardController;
@@ -810,6 +811,17 @@ Route::middleware([
             '/school-results/export',
             [SchoolResultsController::class, 'export']
         )->name('admin.school-results.export');
+
+        /* Learning Analytics lanjutan (Fase 1: keterlibatan & konsistensi) */
+        Route::get(
+            '/learning-analytics/engagement',
+            [LearningAnalyticsController::class, 'engagement']
+        )->name('admin.la.engagement');
+
+        Route::get(
+            '/learning-analytics/engagement/export',
+            [LearningAnalyticsController::class, 'engagementExport']
+        )->name('admin.la.engagement.export');
 
         });
 
