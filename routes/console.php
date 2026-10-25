@@ -35,3 +35,6 @@ Schedule::command('la:aggregate')->dailyAt('02:30')->withoutOverlapping();
 
 // Learning Analytics: analisis butir (mingguan, Minggu dini hari).
 Schedule::command('la:item-analysis')->weeklyOn(0, '03:15')->withoutOverlapping();
+
+// Learning Analytics: BKT, fitur SRL, klaster profil (harian, setelah agregat).
+Schedule::command('la:fit-models')->dailyAt('03:45')->withoutOverlapping();

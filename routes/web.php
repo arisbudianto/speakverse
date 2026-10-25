@@ -23,6 +23,7 @@ use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\SchoolResultsController;
 use App\Http\Controllers\Admin\LearningAnalyticsController;
 use App\Http\Controllers\Admin\LearningAnalyticsOutcomeController;
+use App\Http\Controllers\Admin\LearningAnalyticsBehaviorController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Teacher\DashboardController as TeacherDashboardController;
@@ -827,6 +828,8 @@ Route::middleware([
         Route::get('/learning-analytics/outcomes', [LearningAnalyticsOutcomeController::class, 'outcomes'])->name('admin.la.outcomes');
         Route::get('/learning-analytics/items', [LearningAnalyticsOutcomeController::class, 'items'])->name('admin.la.items');
         Route::get('/learning-analytics/items/export', [LearningAnalyticsOutcomeController::class, 'itemsExport'])->name('admin.la.items.export');
+        Route::get('/learning-analytics/mastery', [LearningAnalyticsBehaviorController::class, 'mastery'])->name('admin.la.mastery');
+        Route::get('/learning-analytics/srl', [LearningAnalyticsBehaviorController::class, 'srl'])->name('admin.la.srl');
 
         });
 

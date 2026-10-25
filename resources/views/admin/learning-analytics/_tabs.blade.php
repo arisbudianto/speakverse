@@ -2,6 +2,8 @@
     $tabs = [
         'admin.la.engagement' => 'Keterlibatan',
         'admin.la.outcomes' => 'Hasil Belajar',
+        'admin.la.mastery' => 'Penguasaan',
+        'admin.la.srl' => 'Strategi & SRL',
         'admin.la.items' => 'Kualitas Soal',
     ];
 @endphp
