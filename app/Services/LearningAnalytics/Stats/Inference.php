@@ -253,6 +253,48 @@ final class Inference
         return (count($d) >= 20 && $sk && abs($sk['skew']) < 1 && abs($sk['kurt']) < 2) ? 't' : 'wilcoxon';
     }
 
+    /**
+     * Uji t Welch dua sampel independen (varians tak sama). df Welch–Satterthwaite; CI 95% selisih rerata (a − b).
+     * @return array{n1:int,n2:int,diff:float,t:float,df:float,p:float,ci:array{0:float,1:float}}|null
+     */
+    public static function welch(array $a, array $b): ?array
+    {
+        $n1 = count($a);
+        $n2 = count($b);
+        if ($n1 < 2 || $n2 < 2) {
+            return null;
+        }
+        $v1 = D::sd($a) ** 2 / $n1;
+        $v2 = D::sd($b) ** 2 / $n2;
+        $se = sqrt($v1 + $v2);
+        $diff = D::mean($a) - D::mean($b);
+        if ($se < 1e-12) {
+            return ['n1' => $n1, 'n2' => $n2, 'diff' => $diff, 't' => 0.0, 'df' => (float) ($n1 + $n2 - 2), 'p' => abs($diff) < 1e-12 ? 1.0 : 0.0, 'ci' => [$diff, $diff]];
+        }
+        $t = $diff / $se;
+        $df = ($v1 + $v2) ** 2 / ($v1 ** 2 / ($n1 - 1) + $v2 ** 2 / ($n2 - 1));
+        $q = Distributions::tQuantile(0.975, $df);
+
+        return ['n1' => $n1, 'n2' => $n2, 'diff' => $diff, 't' => $t, 'df' => $df, 'p' => min(1.0, 2 * (1 - Distributions::tCdf(abs($t), $df))), 'ci' => [$diff - $q * $se, $diff + $q * $se]];
+    }
+
+    /** Hedges' g dua sampel independen (SD gabungan). */
+    public static function hedgesGIndependent(array $a, array $b): ?float
+    {
+        $n1 = count($a);
+        $n2 = count($b);
+        if ($n1 < 2 || $n2 < 2) {
+            return null;
+        }
+        $sp = sqrt((($n1 - 1) * D::sd($a) ** 2 + ($n2 - 1) * D::sd($b) ** 2) / ($n1 + $n2 - 2));
+        if ($sp < 1e-12) {
+            return null;
+        }
+        $j = 1 - 3 / (4 * ($n1 + $n2 - 2) - 1);
+
+        return $j * (D::mean($a) - D::mean($b)) / $sp;
+    }
+
     /** @return float[] peringkat rata-rata (1..n) dalam urutan masukan */
     public static function ranks(array $v): array
     {

@@ -38,3 +38,6 @@ Schedule::command('la:item-analysis')->weeklyOn(0, '03:15')->withoutOverlapping(
 
 // Learning Analytics: BKT, fitur SRL, klaster profil (harian, setelah agregat).
 Schedule::command('la:fit-models')->dailyAt('03:45')->withoutOverlapping();
+
+// Learning Analytics: skor peringatan dini (setelah model penguasaan).
+Schedule::command('la:score-risk')->dailyAt('04:00')->withoutOverlapping();

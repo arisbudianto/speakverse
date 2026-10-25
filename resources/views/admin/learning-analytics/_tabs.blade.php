@@ -5,6 +5,10 @@
         'admin.la.mastery' => 'Penguasaan',
         'admin.la.srl' => 'Strategi & SRL',
         'admin.la.items' => 'Kualitas Soal',
+        'admin.la.risk' => 'Peringatan Dini',
+        'admin.la.interventions' => 'Intervensi & Konten',
+        'admin.la.research' => 'Ekspor Riset',
+        'admin.la.method' => 'Metodologi',
     ];
 @endphp
 <div class="flex flex-wrap gap-2">

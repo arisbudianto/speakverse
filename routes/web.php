@@ -24,6 +24,10 @@ use App\Http\Controllers\Admin\SchoolResultsController;
 use App\Http\Controllers\Admin\LearningAnalyticsController;
 use App\Http\Controllers\Admin\LearningAnalyticsOutcomeController;
 use App\Http\Controllers\Admin\LearningAnalyticsBehaviorController;
+use App\Http\Controllers\Admin\LearningAnalyticsRiskController;
+use App\Http\Controllers\Admin\LearningAnalyticsResearchController;
+use App\Http\Controllers\Staff\ClassAnalyticsController;
+use App\Http\Controllers\StudentProgressController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Teacher\DashboardController as TeacherDashboardController;
@@ -514,6 +518,9 @@ Route::middleware([
         [ProgressController::class, 'index']
     )->name('progress');
 
+    Route::get('/my-progress', [StudentProgressController::class, 'show'])->name('progress.my');
+    Route::post('/my-progress/consent', [StudentProgressController::class, 'consent'])->name('progress.consent');
+
 
     /*
     |--------------------------------------------------------------------------
@@ -830,6 +837,13 @@ Route::middleware([
         Route::get('/learning-analytics/items/export', [LearningAnalyticsOutcomeController::class, 'itemsExport'])->name('admin.la.items.export');
         Route::get('/learning-analytics/mastery', [LearningAnalyticsBehaviorController::class, 'mastery'])->name('admin.la.mastery');
         Route::get('/learning-analytics/srl', [LearningAnalyticsBehaviorController::class, 'srl'])->name('admin.la.srl');
+        Route::get('/learning-analytics/risk', [LearningAnalyticsRiskController::class, 'risk'])->name('admin.la.risk');
+        Route::post('/learning-analytics/risk/weights', [LearningAnalyticsRiskController::class, 'saveWeights'])->name('admin.la.risk.weights');
+        Route::get('/learning-analytics/interventions', [LearningAnalyticsRiskController::class, 'interventions'])->name('admin.la.interventions');
+        Route::get('/learning-analytics/research', [LearningAnalyticsResearchController::class, 'index'])->name('admin.la.research');
+        Route::post('/learning-analytics/research/group', [LearningAnalyticsResearchController::class, 'setGroup'])->name('admin.la.research.group');
+        Route::post('/learning-analytics/research/export', [LearningAnalyticsResearchController::class, 'export'])->name('admin.la.research.export');
+        Route::get('/learning-analytics/method', [LearningAnalyticsResearchController::class, 'methodology'])->name('admin.la.method');
 
         });
 
@@ -850,6 +864,8 @@ Route::middleware([
         Route::get('/classes/results', [ClassResultsController::class, 'show'])->name('staff.classes.results');
         Route::get('/classes/results/export', [ClassResultsController::class, 'export'])->name('staff.classes.results.export');
         Route::get('/classes/students/{student}/detail', [ClassResultsController::class, 'studentDetail'])->name('staff.classes.students.detail');
+        Route::get('/classes/analytics', [ClassAnalyticsController::class, 'show'])->name('staff.classes.analytics');
+        Route::post('/classes/analytics/interventions', [ClassAnalyticsController::class, 'storeIntervention'])->name('staff.classes.analytics.interventions');
 
         /*
         |--------------------------------------------------------------------------
