@@ -20,26 +20,14 @@ class EngagementReport
         if (! Schema::hasTable('la_daily_student')) {
             return ['ready' => false];
         }
-        $students = User::query()
-            ->where(function ($q) {
-                $q->where('role', 'student')->orWhereNull('role')->orWhere('role', 'user');
-            })
+        $students = \App\Services\LearningAnalytics\Cohort::students()
             ->when($grade, fn ($q) => $q->where('grade', $grade))
             ->get(['id', 'name', 'school', 'major', 'grade', 'parallel'])
             ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'school' => $u->school ?: '(Belum diisi)',
                 'major' => $u->major, 'grade' => $u->grade, 'parallel' => $u->parallel])->all();
 
-        $days = [];
         $ids = array_column($students, 'id');
-        $from = $today->modify('-90 days')->format('Y-m-d');
-        foreach (array_chunk($ids, 800) as $chunk) {
-            foreach (DB::table('la_daily_student')->whereIn('user_id', $chunk)->where('date', '>=', $from)
-                ->get(['user_id', 'date', 'sessions', 'active_seconds', 'events', 'peak_hour']) as $r) {
-                $days[$r->user_id][substr((string) $r->date, 0, 10)] = [
-                    'sessions' => (int) $r->sessions, 'active_seconds' => (int) $r->active_seconds,
-                    'events' => (int) $r->events, 'peak_hour' => (int) $r->peak_hour];
-            }
-        }
+        $days = DaysLoader::load($ids, $today->modify('-90 days')->format('Y-m-d'));
         $computed = DB::table('la_daily_student')->max('computed_at');
 
         return $this->assemble($students, $days, $school, $today) + ['ready' => true, 'computed_at' => $computed];

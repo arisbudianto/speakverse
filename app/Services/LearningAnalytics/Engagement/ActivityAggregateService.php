@@ -23,24 +23,31 @@ class ActivityAggregateService
     /** @return array{students:int,rows:int} */
     public function run(Carbon $since, ?int $onlyUser = null): array
     {
-        $ids = User::query()
-            ->where(function ($q) {
-                $q->where('role', 'student')->orWhereNull('role')->orWhere('role', 'user');
-            })
+        $ids = \App\Services\LearningAnalytics\Cohort::students()
             ->when($onlyUser, fn ($q) => $q->where('id', $onlyUser))
             ->pluck('id')->all();
 
         $rows = 0;
         foreach (array_chunk($ids, self::CHUNK) as $chunk) {
             $ts = array_fill_keys($chunk, []);
-            $this->collect($ts, 'learning_events', 'created_at', $chunk, $since);
-            $this->collect($ts, 'assessment_submissions', DB::raw('COALESCE(submitted_at, created_at)'), $chunk, $since);
-            $this->collect($ts, 'user_lesson_progress', 'completed_at', $chunk, $since);
-            $this->collect($ts, 'gamification_transactions', 'created_at', $chunk, $since);
+            $learn = array_fill_keys($chunk, []);
+            $test = array_fill_keys($chunk, []);
+            $this->collect($learn, 'learning_events', 'created_at', $chunk, $since);
+            $this->collect($learn, 'user_lesson_progress', 'completed_at', $chunk, $since);
+            $this->collectSubmissions($learn, $test, $chunk, $since);
+            $gam = array_fill_keys($chunk, []);
+            $this->collect($gam, 'gamification_transactions', 'created_at', $chunk, $since);
+            foreach ($chunk as $uid) {
+                $ts[$uid] = array_merge($learn[$uid], $test[$uid], $gam[$uid]);
+            }
+            $split = Schema::hasColumn('la_daily_student', 'learn_events');
             $quiz = $this->quizCounts($chunk, $since);
 
             $batch = [];
             $now = now();
+            $count = fn (array $l) => array_count_values(array_map(fn ($t) => date('Y-m-d', $t), $l));
+            $lc = array_map($count, $learn);
+            $tc = array_map($count, $test);
             foreach ($ts as $uid => $list) {
                 foreach (DailyAggregator::days($list) as $date => $d) {
                     if ($date < $since->format('Y-m-d')) {
@@ -51,20 +58,47 @@ class ActivityAggregateService
                         'user_id' => $uid, 'date' => $date,
                         'sessions' => $d['sessions'], 'active_seconds' => $d['active_seconds'],
                         'events' => $d['events'], 'peak_hour' => $d['peak_hour'],
+                        'learn_events' => $split ? ($lc[$uid][$date] ?? 0) : null, 'test_events' => $split ? ($tc[$uid][$date] ?? 0) : null,
                         'quiz_answers' => $q['a'], 'quiz_correct' => $q['c'],
                         'hint_l1' => $q['h1'], 'hint_l2' => $q['h2'], 'hint_l3' => $q['h3'],
                         'computed_at' => $now,
                     ];
                 }
             }
+            $upd = ['sessions', 'active_seconds', 'events', 'peak_hour', 'quiz_answers', 'quiz_correct', 'hint_l1', 'hint_l2', 'hint_l3', 'computed_at'];
+            if ($split) {
+                array_push($upd, 'learn_events', 'test_events');
+            } else {
+                $batch = array_map(fn ($r) => array_diff_key($r, ['learn_events' => 1, 'test_events' => 1]), $batch);
+            }
             foreach (array_chunk($batch, 500) as $b) {
-                DB::table('la_daily_student')->upsert($b, ['user_id', 'date'],
-                    ['sessions', 'active_seconds', 'events', 'peak_hour', 'quiz_answers', 'quiz_correct', 'hint_l1', 'hint_l2', 'hint_l3', 'computed_at']);
+                DB::table('la_daily_student')->upsert($b, ['user_id', 'date'], $upd);
             }
             $rows += count($batch);
         }
 
         return ['students' => count($ids), 'rows' => $rows];
+    }
+
+    /** assessment_submissions: pretest/posttest → $test; type 'unit' → $learn. */
+    private function collectSubmissions(array &$learn, array &$test, array $ids, Carbon $since): void
+    {
+        if (! Schema::hasTable('assessment_submissions')) {
+            return;
+        }
+        $from = $since->copy()->subDay();
+        $q = DB::table('assessment_submissions')->whereIn('user_id', $ids)->whereRaw('COALESCE(submitted_at, created_at) >= ?', [$from]);
+        foreach ($q->select('user_id', 'type', DB::raw('COALESCE(submitted_at, created_at) as ts'))->cursor() as $r) {
+            $t = strtotime((string) $r->ts);
+            if (! $t) {
+                continue;
+            }
+            if (in_array($r->type, ['pretest', 'posttest'], true)) {
+                $test[$r->user_id][] = $t;
+            } else {
+                $learn[$r->user_id][] = $t;
+            }
+        }
     }
 
     /** @param array<int,int[]> $ts */

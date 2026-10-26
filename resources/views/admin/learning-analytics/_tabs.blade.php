@@ -1,3 +1,4 @@
+@include('admin.learning-analytics._colors')
 @php
     $tabs = [
         'admin.la.engagement' => 'Keterlibatan',
@@ -7,6 +8,7 @@
         'admin.la.items' => 'Kualitas Soal',
         'admin.la.risk' => 'Peringatan Dini',
         'admin.la.interventions' => 'Intervensi & Konten',
+        'admin.la.cohort' => 'Kohort',
         'admin.la.research' => 'Ekspor Riset',
         'admin.la.method' => 'Metodologi',
     ];

@@ -82,6 +82,7 @@ final class ItemAnalyzer
             $sdT = D::sd($totals);
             $varItems = 0.0;
             $itemStats = [];
+            $vec = [];
             // kelompok atas/bawah 27%
             $order = array_keys($totals);
             usort($order, fn ($a, $b) => $totals[$a] <=> $totals[$b]);
@@ -95,6 +96,7 @@ final class ItemAnalyzer
                     $x[$i] = (int) $s[$it]['correct'];
                 }
                 $p = array_sum($x) / $n;
+                $vec[$it] = $x;
                 $varItems += (D::sd($x) ?? 0) ** 2;
                 $rest = [];
                 foreach ($x as $i => $v) {
@@ -158,6 +160,24 @@ final class ItemAnalyzer
                     'indicative' => $n < $this->minN,
                 ];
             }
+            // α bila butir bermasalah berat (kunci diduga salah / daya beda negatif) dibuang
+            $bad = [];
+            foreach ($itemStats as $st) {
+                if (array_intersect($st['flags'], ['kunci diduga salah', 'daya beda negatif'])) {
+                    $bad[] = $st['item'];
+                }
+            }
+            $alphaWo = null;
+            $rest = array_values(array_diff($keep, $bad));
+            if ($bad && count($rest) >= 2) {
+                $tot2 = [];
+                foreach ($mat as $i => $_) {
+                    $tot2[$i] = array_sum(array_map(fn ($it) => $vec[$it][$i], $rest));
+                }
+                $sd2 = D::sd($tot2);
+                $vi2 = array_sum(array_map(fn ($it) => (D::sd($vec[$it]) ?? 0) ** 2, $rest));
+                $alphaWo = ($sd2 !== null && $sd2 > 1e-6) ? round((count($rest) / (count($rest) - 1)) * (1 - $vi2 / ($sd2 ** 2)), 3) : null;
+            }
             $varT = $sdT === null ? 0.0 : $sdT ** 2;
             $alpha = ($k > 1 && $varT > 1e-12) ? ($k / ($k - 1)) * (1 - $varItems / $varT) : null;
             $forms[] = [
@@ -165,6 +185,8 @@ final class ItemAnalyzer
                 'alpha' => $alpha === null ? null : round($alpha, 3),
                 'sem' => ($alpha === null || $sdT === null) ? null : round($sdT * sqrt(max(0.0, 1 - $alpha)), 2),
                 'indicative' => $n < $this->minN, 'dropped_items' => count($freq) - $k,
+                'n_flagged_severe' => count($bad), 'alpha_without_flagged' => $alphaWo,
+                'n_flagged' => count(array_filter($itemStats, fn ($st) => count($st['flags']) > 0)),
             ];
             array_push($items, ...$itemStats);
         }

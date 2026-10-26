@@ -40,6 +40,35 @@ final class BktModel
         return ['p' => $p, 'll' => $ll, 'trace' => $trace];
     }
 
+    /** Batas grid: parameter yang jatuh tepat di batas menandakan model kurang teridentifikasi. */
+    public const GRID = ['l0' => [0.05, 0.7], 't' => [0.02, 0.4], 's' => [0.02, 0.3], 'g' => [0.05, 0.3]];
+
+    /** @return string[] nama parameter yang menempel pada batas grid */
+    public static function atBound(array $prm): array
+    {
+        $out = [];
+        foreach (self::GRID as $k => [$lo, $hi]) {
+            if (abs($prm[$k] - $lo) < 1e-9 || abs($prm[$k] - $hi) < 1e-9) {
+                $out[] = $k;
+            }
+        }
+
+        return $out;
+    }
+
+    /** Log-likelihood model pembanding: peluang benar konstan = rerata (1 parameter). */
+    public static function baselineLl(array $sequences): float
+    {
+        $n = array_sum(array_map('count', $sequences));
+        if ($n === 0) {
+            return 0.0;
+        }
+        $c = array_sum(array_map('array_sum', $sequences));
+        $p = min(0.999, max(0.001, $c / $n));
+
+        return $c * log($p) + ($n - $c) * log(1 - $p);
+    }
+
     /**
      * @param array<int,int[]> $sequences urutan pengamatan per siswa
      * @return array{params:array,ll:float,n_obs:int,n_seq:int}

@@ -1,7 +1,7 @@
 <?php
 // Uji mandiri Fase 3: php tests/Unit/LearningAnalytics/run_phase3.php  (acuan: fixtures/phase3_ref.json dari SciPy/scikit-learn)
 $S = dirname(__DIR__, 3) . '/app/Services/LearningAnalytics/';
-foreach (['Stats/Descriptive', 'Stats/Distributions', 'Stats/Inference', 'Stats/Correlation', 'Stats/KMeans', 'Mastery/BktModel', 'Mastery/MasteryAnalyzer', 'Srl/SrlFeatures', 'Srl/BehaviorClusters'] as $f) require $S . $f . '.php';
+foreach (['Stats/Descriptive', 'Stats/Distributions', 'Stats/Inference', 'Stats/Multiple', 'Stats/Correlation', 'Stats/KMeans', 'Mastery/BktModel', 'Mastery/MasteryAnalyzer', 'Srl/SrlFeatures', 'Srl/BehaviorClusters'] as $f) require $S . $f . '.php';
 use App\Services\LearningAnalytics\Mastery\{BktModel, MasteryAnalyzer};
 use App\Services\LearningAnalytics\Srl\{BehaviorClusters, SrlFeatures};
 use App\Services\LearningAnalytics\Stats\{Correlation, KMeans};

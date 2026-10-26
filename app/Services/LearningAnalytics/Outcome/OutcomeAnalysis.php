@@ -17,7 +17,7 @@ use App\Services\LearningAnalytics\Stats\Inference as I;
  */
 final class OutcomeAnalysis
 {
-    public function __construct(private int $minPairs = 5)
+    public function __construct(private int $minPairs = 5, private int $iccMinGroup = 5, private int $iccMinGroups = 3)
     {
     }
 
@@ -105,15 +105,24 @@ final class OutcomeAnalysis
                 $equity[$k]['size'] = $e['epsilon2'] < 0.01 ? 'diabaikan' : ($e['epsilon2'] < 0.08 ? 'kecil' : ($e['epsilon2'] < 0.26 ? 'sedang' : 'besar'));
             }
         }
+        // ICC hanya layak bila ≥ iccMinGroups kelompok masing-masing ≥ iccMinGroup siswa
+        $iccOf = function (array $g) use ($filterMin): ?array {
+            $ok = $filterMin($g, $this->iccMinGroup);
+
+            return count($ok) >= $this->iccMinGroups ? self::iccRow(I::icc1($ok)) : null;
+        };
         $icc = [
-            'post_school' => self::iccRow(I::icc1($filterMin($postBySchool, 1))),
-            'post_class' => self::iccRow(I::icc1($filterMin($postByClass, 1))),
-            'gain_school' => self::iccRow(I::icc1($filterMin($gainBySchool, 1))),
-            'gain_class' => self::iccRow(I::icc1($filterMin($gainByClass, 1))),
+            'post_school' => $iccOf($postBySchool), 'post_class' => $iccOf($postByClass),
+            'gain_school' => $iccOf($gainBySchool), 'gain_class' => $iccOf($gainByClass),
         ];
+        $icc['min_note'] = "ICC diestimasi bila ≥ {$this->iccMinGroups} kelompok dengan ≥ {$this->iccMinGroup} siswa; selain itu tampil \"tidak dapat diestimasi\".";
 
         return [
+            'relative' => $this->relative($students),
+            'pre_post_rho' => $n >= 5 ? (\App\Services\LearningAnalytics\Stats\Correlation::spearman($pre, $post)['rho'] ?? null) : null,
             'pairs' => $n,
+            // efek minimal terdeteksi (d dalam SD selisih), uji dua sisi α = 0,05, daya 80% (hampiran t)
+            'mde_d' => $n >= 3 ? round((\App\Services\LearningAnalytics\Stats\Distributions::tQuantile(0.975, $n - 1) + \App\Services\LearningAnalytics\Stats\Distributions::tQuantile(0.8, $n - 1)) / sqrt($n), 2) : null,
             'mean_pre' => $n ? round(D::mean($pre), 1) : null,
             'mean_post' => $n ? round(D::mean($post), 1) : null,
             'test' => $test, 'effect' => $effect, 'hake' => $hake,
@@ -124,6 +133,48 @@ final class OutcomeAnalysis
             'hist_post' => self::hist(array_filter(array_column($students, 'post'), fn ($v) => $v !== null)),
             'equity' => $equity, 'icc' => $icc,
         ];
+    }
+
+    /**
+     * Perubahan posisi relatif: z-skor pre dan post dihitung dalam kelompok berpasangan; Δz rerata per sekolah.
+     * Sah walau bentuk tes pre dan post tidak setara (rerata Δz seluruh kohort = 0 menurut konstruksi).
+     * @return array{rows:array<int,array{school:string,n:int,dz:float,se:?float}>,note:string}
+     */
+    public function relative(array $students): array
+    {
+        $pairs = [];
+        foreach ($students as $s) {
+            if ($s['pre'] !== null && $s['post'] !== null) {
+                $pairs[] = [$s['school'] ?: '(Belum diisi)', (float) $s['pre'], (float) $s['post']];
+            }
+        }
+        $note = 'Δz = perubahan posisi relatif (z-skor pre → post) di dalam kohort berpasangan; rerata seluruh kohort selalu 0.';
+        if (count($pairs) < 10) {
+            return ['rows' => [], 'note' => $note . ' Butuh ≥10 pasangan.'];
+        }
+        $pre = array_column($pairs, 1);
+        $post = array_column($pairs, 2);
+        $mp = D::mean($pre);
+        $mq = D::mean($post);
+        $sp = sqrt(array_sum(array_map(fn ($v) => ($v - $mp) ** 2, $pre)) / count($pre));
+        $sq = sqrt(array_sum(array_map(fn ($v) => ($v - $mq) ** 2, $post)) / count($post));
+        if ($sp < 1e-9 || $sq < 1e-9) {
+            return ['rows' => [], 'note' => $note . ' Sebaran skor nol.'];
+        }
+        $by = [];
+        foreach ($pairs as [$sch, $a, $b]) {
+            $by[$sch][] = ($b - $mq) / $sq - ($a - $mp) / $sp;
+        }
+        $rows = [];
+        foreach ($by as $sch => $d) {
+            if (count($d) >= $this->minPairs) {
+                $sd = D::sd($d);
+                $rows[] = ['school' => $sch, 'n' => count($d), 'dz' => round(D::mean($d), 2), 'se' => $sd === null ? null : round($sd / sqrt(count($d)), 2)];
+            }
+        }
+        usort($rows, fn ($x, $y) => strcmp($x['school'], $y['school']));
+
+        return ['rows' => $rows, 'note' => $note];
     }
 
     private static function iccRow(?array $i): ?array

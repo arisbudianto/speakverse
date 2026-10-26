@@ -10,7 +10,9 @@ namespace App\Services\LearningAnalytics\Mastery;
  * - Parameter BKT dicocokkan per kompetensi bila ≥ minObs pengamatan dan ≥ minSeq siswa; bila tidak,
  *   dipakai DEFAULTS (ditandai 'default' = true; interpretasi lebih lemah).
  * - mastered   : P(L) ≥ masteryThreshold (default 0,95).
- * - wheel spinning (Beck & Gong, 2013): ≥ wheelAttempts pengamatan (default 10) tetapi belum mencapai penguasaan.
+ * - wheel spinning (Beck & Gong, 2013): ≥ wheelAttempts pengamatan (default 10), belum menguasai, DAN P(L) naik < wheelMinGain pada wheelWindow pengamatan terakhir.
+ * - reliable: BKT hanya dipercaya bila hasil fit (kompetensi cukup data) mengungguli pembanding konstan (log-likelihood lebih besar > 3).
+ *   Bila tidak reliable, status 'dikuasai' dan 'berputar-putar' tidak diberikan; parameter yang menempel batas grid ditandai (at_bound).
  * - Kurva belajar: tingkat kesalahan pada kesempatan ke-k (gabungan siswa), dicocokkan hukum pangkat
  *   e(k) = a·k^b lewat OLS pada ln e vs ln k (hanya titik dengan e > 0 dan ≥ 5 pengamatan). b < 0 → belajar.
  */
@@ -21,6 +23,8 @@ final class MasteryAnalyzer
         private int $wheelAttempts = 10,
         private int $minObs = 30,
         private int $minSeq = 5,
+        private float $wheelMinGain = 0.05,
+        private int $wheelWindow = 5,
     ) {
     }
 
@@ -44,6 +48,10 @@ final class MasteryAnalyzer
                 $prm = BktModel::DEFAULTS;
                 $ll = array_sum(array_map(fn ($s) => BktModel::run($s, $prm)['ll'], $seqs));
             }
+            // diagnostik kecocokan: BKT harus lebih baik daripada pembanding konstan (selisih ll > selisih jumlah parameter)
+            $llBase = BktModel::baselineLl($seqs);
+            $bound = $fitted ? BktModel::atBound($prm) : [];
+            $reliable = $fitted && ($ll - $llBase) > 3.0;
             $mastered = 0;
             $wheel = 0;
             foreach ($byUser as $uid => $seq) {
@@ -51,8 +59,10 @@ final class MasteryAnalyzer
                     continue;
                 }
                 $r = BktModel::run($seq, $prm);
-                $isM = $r['p'] >= $this->masteryThreshold;
-                $isW = ! $isM && count($seq) >= $this->wheelAttempts;
+                $isM = $reliable && $r['p'] >= $this->masteryThreshold;
+                $nn = count($r['trace']);
+                $stagnant = $nn <= $this->wheelWindow || ($r['trace'][$nn - 1] - $r['trace'][$nn - 1 - $this->wheelWindow]) < $this->wheelMinGain;
+                $isW = $reliable && ! $isM && $r['p'] < $this->masteryThreshold && count($seq) >= $this->wheelAttempts && $stagnant;
                 $first = null;
                 foreach ($r['trace'] as $i => $pp) {
                     if ($pp >= $this->masteryThreshold) {
@@ -61,13 +71,14 @@ final class MasteryAnalyzer
                     }
                 }
                 $states[] = ['user' => $uid, 'competency' => $comp, 'p' => round($r['p'], 4), 'n_obs' => count($seq),
-                    'mastered' => $isM, 'wheel_spinning' => $isW, 'opportunities_to_mastery' => $first];
+                    'mastered' => $isM, 'wheel_spinning' => $isW, 'opportunities_to_mastery' => $first, 'reliable' => $reliable];
                 $mastered += $isM ? 1 : 0;
                 $wheel += $isW ? 1 : 0;
             }
             $comps[] = [
                 'competency' => $comp, 'students' => count($seqs), 'n_obs' => $nObs, 'default' => ! $fitted,
                 'params' => array_map(fn ($v) => round($v, 3), $prm), 'll' => round($ll, 2),
+                'reliable' => $reliable, 'at_bound' => $bound, 'll_baseline' => round($llBase, 2),
                 'mastered' => $mastered, 'wheel_spinning' => $wheel,
                 'mastered_pct' => round(100 * $mastered / count($seqs), 1),
                 'curve' => self::curve($seqs),

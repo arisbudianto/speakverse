@@ -3,7 +3,7 @@
 @section('content')
     @php
         $card = 'rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/[0.03]';
-        $num = fn ($v, $d = 1) => $v === null ? '–' : rtrim(rtrim(number_format((float) $v, $d), '0'), '.');
+        $num = fn ($v, $d = 1) => $v === null ? '–' : (str_contains($__s = number_format((float) $v, $d), '.') ? rtrim(rtrim($__s, '0'), '.') : $__s);
         $pv = fn ($p) => $p === null ? '–' : ($p < 0.001 ? '< 0,001' : str_replace('.', ',', number_format($p, 3)));
         $sig = fn ($p) => $p !== null && $p < 0.05;
         $t = $a['test'];
@@ -42,6 +42,16 @@
         @if ($a['pairs'] < 2)
             <div class="{{ $card }} text-center text-slate-500">Belum cukup siswa dengan pretest dan posttest (n = {{ $a['pairs'] }}).</div>
         @else
+            @if (! empty($cohortNote))<p class="text-xs text-slate-500">{{ $cohortNote }}</p>@endif
+            @if ($eq && ! $eq['comparable'])
+                <div class="rounded-2xl border border-orange-300 bg-orange-50 p-4 text-sm text-orange-900" role="alert">
+                    <b>Peringatan: bentuk tes tidak sebanding.</b> {{ $eq['message'] }}
+                    @if (! $eq['has_anchors']) <span>Tidak ada butir jangkar (butir yang sama di pre dan post): tambahkan 5–8 butir jangkar pada bentuk berikutnya agar skor dapat diekuatkan.</span>@endif
+                </div>
+            @endif
+            @if ($coverage)
+                <p class="text-xs text-slate-500">Cakupan: {{ $a['pairs'] }} siswa berpasangan dari {{ $coverage['students'] }} siswa terdaftar ({{ $coverage['pct'] }}%)@if ($coverage['pct'] < 50). Siswa yang mengerjakan posttest mungkin bukan sampel acak: waspadai bias seleksi.@endif</p>
+            @endif
             <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <div class="{{ $card }}">
                     <p class="text-sm font-semibold text-slate-500">Pretest → Posttest</p>
@@ -65,6 +75,7 @@
                     <p class="mt-2 text-xs text-slate-500">
                         @if ($a['effect']) {{ $a['effect']['label'] }} · CI 95% {{ $num($a['effect']['ci'][0], 2) }} s/d {{ $num($a['effect']['ci'][1], 2) }} @else selisih tidak bervariasi @endif
                     </p>
+                    <p class="mt-1 text-xs text-slate-500">Efek minimal yang terdeteksi (daya 80%): d ≈ {{ $num($a['mde_d'], 2) }} pada n = {{ $a['pairs'] }}.</p>
                 </div>
                 <div class="{{ $card }}">
                     <p class="text-sm font-semibold text-slate-500">Gain ternormalisasi Hake &lt;g&gt;</p>
@@ -136,6 +147,27 @@
                 </div>
             </div>
 
+            @if ($eq && count($eq['rows']))
+                <div class="{{ $card }}">
+                    <h2 class="text-lg font-black">Kesetaraan bentuk tes (kesukaran butir)</h2>
+                    <table class="mt-3 w-full text-left text-sm"><thead class="text-xs uppercase text-slate-500"><tr><th class="py-1">Keterampilan</th><th>Butir pre / post</th><th>Rerata p pre</th><th>Rerata p post</th><th>Selisih</th><th>Jangkar</th><th>Selisih pada jangkar</th><th>Sebanding?</th></tr></thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-white/5">
+                        @foreach ($eq['rows'] as $r)
+                            <tr><td class="py-1 font-bold">{{ $r['skill'] }}</td><td>{{ $r['items_pre'] }} / {{ $r['items_post'] }}</td><td>{{ $num($r['p_pre'], 2) }}</td><td>{{ $num($r['p_post'], 2) }}</td><td>{{ $num($r['delta'], 2) }}</td><td>{{ $r['anchors'] }}</td><td>{{ $num($r['anchor_delta'], 2) }}</td><td class="{{ $r['comparable'] ? 'text-green-600' : 'text-red-600' }} font-bold">{{ $r['comparable'] ? 'ya' : 'tidak' }}</td></tr>
+                        @endforeach
+                        </tbody></table>
+                    <p class="mt-2 text-xs text-slate-500">Ambang: |Δp| ≤ {{ $eq['delta_limit'] }}. Butir dengan n &lt; 15 diabaikan. Korelasi pre–post (Spearman): {{ $num($a['pre_post_rho'], 2) }}.</p>
+                </div>
+            @endif
+            @if (count($a['relative']['rows']))
+                <div class="{{ $card }}">
+                    <h2 class="text-lg font-black">Perubahan posisi relatif per sekolah (alternatif yang sah bila bentuk tes tak setara)</h2>
+                    <table class="mt-3 w-full text-left text-sm"><thead class="text-xs uppercase text-slate-500"><tr><th class="py-1">Sekolah</th><th>n</th><th>Δz rerata</th><th>Galat baku</th></tr></thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-white/5">@foreach ($a['relative']['rows'] as $r)<tr><td class="py-1">{{ $r['school'] }}</td><td>{{ $r['n'] }}</td><td>{{ $num($r['dz'], 2) }}</td><td>{{ $num($r['se'], 2) }}</td></tr>@endforeach</tbody></table>
+                    <p class="mt-2 text-xs text-slate-500">{{ $a['relative']['note'] }}</p>
+                </div>
+            @endif
+
             <div class="grid gap-6 lg:grid-cols-2">
                 <div class="{{ $card }}">
                     <h2 class="text-lg font-black">Variasi bersarang (ICC)</h2>
@@ -148,12 +180,13 @@
                                     @if ($a['icc'][$k])
                                         <td>{{ $num($a['icc'][$k]['icc'], 2) }}</td><td>{{ $a['icc'][$k]['label'] }}</td><td>{{ $num($a['icc'][$k]['design_effect'], 2) }}</td>
                                     @else
-                                        <td colspan="3" class="text-slate-500">data belum cukup</td>
+                                        <td colspan="3" class="text-slate-500">tidak dapat diestimasi</td>
                                     @endif
                                 </tr>
                             @endforeach
                         </tbody>
                     </table>
+                    <p class="mt-3 text-xs text-slate-500">{{ $a['icc']['min_note'] ?? '' }}</p>
                     <p class="mt-3 text-xs text-slate-500">ICC = porsi variasi skor yang berasal dari perbedaan kelompok. ICC besar berarti siswa dalam satu sekolah/kelas mirip; analisis inferensial riset sebaiknya memakai model multilevel (ekspor per siswa tersedia di menu Hasil Sekolah).</p>
                 </div>
 

@@ -4,6 +4,7 @@ namespace App\Services\LearningAnalytics\Mastery;
 
 use App\Models\User;
 use App\Services\Analytics\SchoolLearningAnalytics;
+use App\Services\LearningAnalytics\Engagement\DaysLoader;
 use App\Services\LearningAnalytics\Engagement\EngagementMetrics;
 use App\Services\LearningAnalytics\Srl\BehaviorClusters;
 use App\Services\LearningAnalytics\Srl\SrlFeatures;
@@ -27,11 +28,9 @@ class LearningModelsService
 
     public function run(): array
     {
-        $ids = User::query()
-            ->where(function ($q) {
-                $q->where('role', 'student')->orWhereNull('role')->orWhere('role', 'user');
-            })->pluck('id')->all();
+        $ids = \App\Services\LearningAnalytics\Cohort::students()->pluck('id')->all();
         $comp = $this->competencyMap();
+        $lessonName = DB::table('lessons')->pluck('title', 'id')->map(fn ($t) => trim((string) $t))->all();
 
         $obs = [];      // [kompetensi][user] => [0/1,...]
         $srl = [];
@@ -44,7 +43,7 @@ class LearningModelsService
                 ->whereIn('event_type', ['select', 'revise', 'hint_request'])
                 ->whereNotNull('question_id')
                 ->orderBy('id')
-                ->get(['id', 'user_id', 'quiz_session_id', 'skill', 'question_id', 'event_type', 'is_correct', 'attempt_no', 'hint_level_shown', 'response_ms', 'created_at']) as $e) {
+                ->get(['id', 'user_id', 'quiz_session_id', 'skill', 'question_id', 'lesson_id', 'event_type', 'is_correct', 'attempt_no', 'hint_level_shown', 'response_ms', 'created_at']) as $e) {
                 $events++;
                 $q = $e->skill . ':' . $e->question_id;
                 $rows[] = [
@@ -54,7 +53,7 @@ class LearningModelsService
                     'ms' => $e->response_ms === null ? null : (int) $e->response_ms, 'ts' => strtotime((string) $e->created_at),
                 ];
                 if ($e->event_type !== 'hint_request' && (int) $e->attempt_no === 1 && $e->is_correct !== null) {
-                    $obs[$comp[$q] ?? ($e->skill . ':umum')][(int) $e->user_id][] = (int) (bool) $e->is_correct;
+                    $obs[$this->competencyOf($comp[$q] ?? null, $e->skill, $e->lesson_id ? ($lessonName[(int) $e->lesson_id] ?? null) : null)][(int) $e->user_id][] = (int) (bool) $e->is_correct;
                 }
             }
             $srl += $feat->compute($rows);
@@ -76,14 +75,14 @@ class LearningModelsService
             foreach ($mastery['competencies'] as $c) {
                 DB::table('la_bkt_params')->insert([
                     'competency' => $c['competency'], 'l0' => $c['params']['l0'], 't' => $c['params']['t'], 's' => $c['params']['s'], 'g' => $c['params']['g'],
-                    'log_likelihood' => $c['ll'], 'students' => $c['students'], 'n_obs' => $c['n_obs'], 'is_default' => $c['default'],
+                    'log_likelihood' => $c['ll'], 'll_baseline' => $c['ll_baseline'], 'reliable' => $c['reliable'], 'at_bound' => json_encode($c['at_bound']), 'students' => $c['students'], 'n_obs' => $c['n_obs'], 'is_default' => $c['default'],
                     'mastered' => $c['mastered'], 'wheel_spinning' => $c['wheel_spinning'], 'curve' => json_encode($c['curve']), 'computed_at' => $now,
                 ]);
             }
             foreach (array_chunk($mastery['states'], 500) as $chunk) {
                 DB::table('la_mastery')->insert(array_map(fn ($s) => [
                     'user_id' => $s['user'], 'competency' => $s['competency'], 'p_mastery' => $s['p'], 'n_obs' => $s['n_obs'],
-                    'mastered' => $s['mastered'], 'wheel_spinning' => $s['wheel_spinning'],
+                    'mastered' => $s['mastered'], 'wheel_spinning' => $s['wheel_spinning'], 'reliable' => $s['reliable'],
                     'opportunities_to_mastery' => $s['opportunities_to_mastery'], 'computed_at' => $now], $chunk));
             }
             $labels = [];
@@ -118,6 +117,16 @@ class LearningModelsService
             'srl_students' => count($srl), 'clustered' => $clusters['n'], 'k' => $clusters['k']];
     }
 
+    /** Kompetensi: sub-keterampilan butir bila ada; jika kosong ('umum'), pakai judul pelajaran; terakhir 'skill:umum'. */
+    private function competencyOf(?string $mapped, string $skill, ?string $lesson): string
+    {
+        if ($mapped !== null && ! str_ends_with($mapped, ':umum')) {
+            return $mapped;
+        }
+
+        return $lesson ? mb_substr($skill . ':' . $lesson, 0, 100) : ($mapped ?? $skill . ':umum');
+    }
+
     /** @return array<string,string> 'skill:question_id' => 'skill:sub_skill' */
     private function competencyMap(): array
     {
@@ -147,16 +156,8 @@ class LearningModelsService
         $today = new DateTimeImmutable('today');
         $em = new EngagementMetrics();
         $out = [];
-        foreach (array_chunk($ids, 800) as $chunk) {
-            $days = [];
-            foreach (DB::table('la_daily_student')->whereIn('user_id', $chunk)->where('date', '>=', $today->modify('-40 days')->format('Y-m-d'))
-                ->get(['user_id', 'date', 'sessions', 'active_seconds', 'events', 'peak_hour']) as $r) {
-                $days[$r->user_id][substr((string) $r->date, 0, 10)] = ['sessions' => (int) $r->sessions, 'active_seconds' => (int) $r->active_seconds,
-                    'events' => (int) $r->events, 'peak_hour' => (int) $r->peak_hour];
-            }
-            foreach ($days as $uid => $d) {
-                $out[$uid] = $em->student($d, $today)['regularity_index'];
-            }
+        foreach (DaysLoader::load($ids, $today->modify('-40 days')->format('Y-m-d')) as $uid => $d) {
+            $out[$uid] = $em->student($d, $today)['regularity_index'];
         }
 
         return $out;

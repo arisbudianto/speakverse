@@ -3,7 +3,7 @@
 @section('content')
     @php
         $card = 'rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/[0.03]';
-        $num = fn ($v, $d = 2) => $v === null ? '–' : rtrim(rtrim(number_format((float) $v, $d), '0'), '.');
+        $num = fn ($v, $d = 2) => $v === null ? '–' : (str_contains($__s = number_format((float) $v, $d), '.') ? rtrim(rtrim($__s, '0'), '.') : $__s);
     @endphp
 
     <div class="space-y-8">
@@ -29,7 +29,10 @@
                         <tbody class="divide-y divide-slate-100 dark:divide-white/5">
                             @foreach ($comps as $c)
                                 <tr>
-                                    <td class="py-2 font-bold">{{ $c->competency }}@if ($c->is_default) <span class="block text-[10px] font-normal text-yellow-600">parameter bawaan (data sedikit)</span>@endif</td>
+                                    <td class="py-2 font-bold">{{ $c->competency }}@if ($c->is_default) <span class="block text-[10px] font-normal text-yellow-600">parameter bawaan (data sedikit)</span>@endif
+                                        @if (property_exists($c, 'reliable') && ! $c->reliable && ! $c->is_default) <span class="block text-[10px] font-normal text-orange-600">fit tidak lebih baik dari pembanding: status penguasaan tidak diberikan</span>@endif
+                                        @php $ab = json_decode($c->at_bound ?? '[]', true) ?: []; @endphp
+                                        @if (count($ab)) <span class="block text-[10px] font-normal text-orange-600">parameter di batas grid: {{ strtoupper(implode(', ', $ab)) }} (model kurang teridentifikasi)</span>@endif</td>
                                     <td>{{ $c->students }}</td>
                                     <td>{{ $c->n_obs }}</td>
                                     <td>{{ $num($c->l0) }}</td><td>{{ $num($c->t) }}</td><td>{{ $num($c->s) }}</td><td>{{ $num($c->g) }}</td>
@@ -61,21 +64,22 @@
                 @if ($wheel->isEmpty())
                     <p class="mt-3 text-sm text-slate-500">Tidak ada siswa yang memenuhi kriteria.</p>
                 @else
+                    <p class="mt-2 text-xs text-slate-500">{{ $wheelTotal }} siswa memenuhi kriteria; ditampilkan 50 teratas (urut jumlah kompetensi, lalu jumlah percobaan).</p>
                     <div class="mt-4 overflow-x-auto">
                         <table class="w-full min-w-[640px] text-left text-sm">
-                            <thead class="text-xs uppercase text-slate-500"><tr><th class="py-2">Nama</th><th>Sekolah</th><th>Kelas</th><th>Kompetensi</th><th>Percobaan</th><th>P(menguasai)</th></tr></thead>
+                            <thead class="text-xs uppercase text-slate-500"><tr><th class="py-2">Nama</th><th>Sekolah</th><th>Kelas</th><th>Kompetensi (percobaan · P)</th></tr></thead>
                             <tbody class="divide-y divide-slate-100 dark:divide-white/5">
                                 @foreach ($wheel as $w)
-                                    <tr>
+                                    <tr class="align-top">
                                         <td class="py-2 font-bold">{{ $w->name }}</td><td>{{ $w->school }}</td><td>{{ $w->grade }} {{ $w->major }} {{ $w->parallel }}</td>
-                                        <td>{{ $w->competency }}</td><td>{{ $w->n_obs }}</td><td>{{ $num($w->p_mastery) }}</td>
+                                        <td>@foreach ($w->items as $it)<span class="mb-1 mr-1 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs dark:bg-white/10">{{ $it['competency'] }} · {{ $it['n'] }}× · {{ $num($it['p']) }}</span>@endforeach</td>
                                     </tr>
                                 @endforeach
                             </tbody>
                         </table>
                     </div>
                 @endif
-                <p class="mt-3 text-xs text-slate-500">Kriteria: ≥10 percobaan pertama pada kompetensi itu dan P(menguasai) &lt; 0,95. Ini penanda untuk dicek guru, bukan vonis.</p>
+                <p class="mt-3 text-xs text-slate-500">Kriteria: ≥10 percobaan pertama, P(menguasai) &lt; 0,95, kenaikan P &lt; 0,05 pada 5 percobaan terakhir, dan model BKT kompetensi itu lebih baik daripada pembanding konstan. Ini penanda untuk dicek guru, bukan vonis.</p>
             </div>
 
             <details class="{{ $card }}">

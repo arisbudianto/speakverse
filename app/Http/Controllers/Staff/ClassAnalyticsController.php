@@ -25,16 +25,14 @@ class ClassAnalyticsController extends Controller
         $class = $this->validatedClass($request);
         $this->authorizeClass($class);
         $ready = Schema::hasTable('la_risk_scores') && Schema::hasTable('la_mastery');
-        $students = User::query()->where('school', $class['school'])->where('major', $class['major'])->where('grade', $class['grade'])->where('parallel', $class['parallel'])
-            ->where(function ($q) {
-                $q->where('role', 'student')->orWhereNull('role')->orWhere('role', 'user');
-            })->orderBy('name')->get(['id', 'name']);
+        $students = \App\Services\LearningAnalytics\Cohort::students()->where('school', $class['school'])->where('major', $class['major'])->where('grade', $class['grade'])->where('parallel', $class['parallel'])
+            ->orderBy('name')->get(['id', 'name']);
         $ids = $students->pluck('id')->all();
         $data = ['class' => $class, 'ready' => $ready, 'students' => $students];
         if ($ready && $ids) {
             $comps = DB::table('la_bkt_params')->orderBy('competency')->pluck('competency')->all();
             $mastery = [];
-            foreach (DB::table('la_mastery')->whereIn('user_id', $ids)->get(['user_id', 'competency', 'p_mastery', 'wheel_spinning']) as $m) {
+            foreach (DB::table('la_mastery')->whereIn('user_id', $ids)->when(Schema::hasColumn('la_mastery', 'reliable'), fn ($q) => $q->where('reliable', true))->get(['user_id', 'competency', 'p_mastery', 'wheel_spinning']) as $m) {
                 $mastery[$m->user_id][$m->competency] = ['p' => (float) $m->p_mastery, 'wheel' => (bool) $m->wheel_spinning];
             }
             $compStats = [];
@@ -59,10 +57,7 @@ class ClassAnalyticsController extends Controller
             $srl = DB::table('la_srl_student')->whereIn('user_id', $ids)->get()->keyBy('user_id');
             $today = new DateTimeImmutable('today');
             $em = new EngagementMetrics();
-            $days = [];
-            foreach (DB::table('la_daily_student')->whereIn('user_id', $ids)->where('date', '>=', $today->modify('-40 days')->format('Y-m-d'))->get(['user_id', 'date', 'sessions', 'active_seconds', 'events', 'peak_hour']) as $r) {
-                $days[$r->user_id][substr((string) $r->date, 0, 10)] = ['sessions' => (int) $r->sessions, 'active_seconds' => (int) $r->active_seconds, 'events' => (int) $r->events, 'peak_hour' => (int) $r->peak_hour];
-            }
+            $days = \App\Services\LearningAnalytics\Engagement\DaysLoader::load($ids, $today->modify('-40 days')->format('Y-m-d'));
             $eng = [];
             foreach ($ids as $id) {
                 $eng[$id] = $em->student($days[$id] ?? [], $today);
@@ -74,7 +69,7 @@ class ClassAnalyticsController extends Controller
                 'comps' => $comps, 'mastery' => $mastery, 'risk' => $risk, 'srl' => $srl, 'eng' => $eng, 'followed' => $followed,
                 'remedial' => (new RemedialRecommender())->recommend($compStats, $errors), 'patternLabels' => EngagementMetrics::PATTERN_LABELS,
             ];
-            AccessLog::record('view_class_analytics', implode('|', $class), ['students' => count($ids)]);
+            AccessLog::recordHourly('view_class_analytics', implode('|', $class), ['students' => count($ids)]);
         }
 
         return view('staff.classes.analytics', $data);

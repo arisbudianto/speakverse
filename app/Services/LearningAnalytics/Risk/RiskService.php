@@ -4,6 +4,7 @@ namespace App\Services\LearningAnalytics\Risk;
 
 use App\Models\User;
 use App\Services\Analytics\SchoolLearningAnalytics;
+use App\Services\LearningAnalytics\Engagement\DaysLoader;
 use App\Services\LearningAnalytics\Engagement\EngagementMetrics;
 use App\Services\LearningAnalytics\Stats\Descriptive as D;
 use DateTimeImmutable;
@@ -40,14 +41,7 @@ class RiskService
         $students = $this->base->report(null, null)['students'];
         $ids = array_column($students, 'id');
 
-        $days = [];
-        foreach (array_chunk($ids, 800) as $chunk) {
-            foreach (DB::table('la_daily_student')->whereIn('user_id', $chunk)->where('date', '>=', $today->modify('-90 days')->format('Y-m-d'))
-                ->get(['user_id', 'date', 'sessions', 'active_seconds', 'events', 'peak_hour']) as $r) {
-                $days[$r->user_id][substr((string) $r->date, 0, 10)] = ['sessions' => (int) $r->sessions, 'active_seconds' => (int) $r->active_seconds,
-                    'events' => (int) $r->events, 'peak_hour' => (int) $r->peak_hour];
-            }
-        }
+        $days = DaysLoader::load($ids, $today->modify('-90 days')->format('Y-m-d'));
         $srl = Schema::hasTable('la_srl_student') ? DB::table('la_srl_student')->get()->keyBy('user_id') : collect();
         $wheel = Schema::hasTable('la_mastery') ? DB::table('la_mastery')->where('wheel_spinning', true)->selectRaw('user_id, COUNT(*) c')->groupBy('user_id')->pluck('c', 'user_id') : collect();
 
@@ -72,11 +66,28 @@ class RiskService
                 'first_try_acc' => $enough ? (float) $sr->first_try_acc : null, 'wheel_n' => $enough || $wheel->has($s['id']) ? (int) ($wheel[$s['id']] ?? 0) : null,
             ];
             $key = $s['school'] . '|' . $s['major'] . '|' . $s['grade'] . '|' . $s['parallel'];
+            $feat['started'] = $eng['days_since_last'] !== null || ($sr && (int) $sr->items >= (int) $cfg['started_min_items']);
             $r = $scorer->score($feat, $thr, $median[$key] ?? 0.0);
             $out[$s['id']] = $r + ['features' => $feat];
-            if ($s['post'] !== null) {
+            if ($s['post'] !== null && $feat['started']) {
                 $rowsModel[] = ['features' => $feat, 'y' => $s['post'] < $cfg['posttest_threshold'] ? 1 : 0, 'school' => $s['school'] ?: '(Belum diisi)'];
             }
+        }
+
+        // kalibrasi ambang pada siswa yang sudah mulai; level dihitung ulang dari skor
+        $startedScores = array_values(array_map(fn ($r) => $r['score'], array_filter($out, fn ($r) => $r['level'] !== 'belum_mulai')));
+        $thr2 = RiskScorer::calibrate($startedScores, $cfg['calibration'], (float) $cfg['level_high'], (float) $cfg['level_medium']);
+        foreach ($out as $uid => $r) {
+            if ($r['level'] !== 'belum_mulai') {
+                $out[$uid]['level'] = RiskScorer::levelFor($r['score'], $thr2['high'], $thr2['medium']);
+            }
+        }
+        $hist = array_fill(0, 10, 0);
+        foreach ($startedScores as $sc) {
+            $hist[min(9, (int) floor($sc / 10))]++;
+        }
+        if (Schema::hasTable('la_settings')) {
+            DB::table('la_settings')->updateOrInsert(['key' => 'risk_thresholds'], ['value' => json_encode($thr2 + ['hist' => $hist, 'computed_at' => now()->toDateTimeString()]), 'updated_by' => null, 'updated_at' => now()]);
         }
 
         $model = new RiskModel((int) $cfg['min_students_model'], (int) $cfg['min_class_model'], (float) $cfg['min_auc_to_show']);
@@ -104,6 +115,6 @@ class RiskService
         });
         $lv = array_count_values(array_column($out, 'level'));
 
-        return ['students' => count($out), 'tinggi' => $lv['tinggi'] ?? 0, 'sedang' => $lv['sedang'] ?? 0, 'rendah' => $lv['rendah'] ?? 0, 'model_ready' => (bool) ($eval['ready'] ?? false), 'auc' => $eval['auc'] ?? null];
+        return ['students' => count($out), 'belum_mulai' => $lv['belum_mulai'] ?? 0, 'thresholds' => $thr2, 'tinggi' => $lv['tinggi'] ?? 0, 'sedang' => $lv['sedang'] ?? 0, 'rendah' => $lv['rendah'] ?? 0, 'model_ready' => (bool) ($eval['ready'] ?? false), 'auc' => $eval['auc'] ?? null];
     }
 }

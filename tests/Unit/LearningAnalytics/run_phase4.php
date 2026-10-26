@@ -1,7 +1,7 @@
 <?php
 // Uji mandiri Fase 4: php tests/Unit/LearningAnalytics/run_phase4.php  (acuan sklearn/SciPy di fixtures/phase4_ref.json)
 $S = dirname(__DIR__, 3) . '/app/Services/LearningAnalytics/';
-foreach (['Stats/Descriptive', 'Stats/Distributions', 'Stats/Inference', 'Stats/Logistic', 'Stats/Metrics', 'Risk/RiskScorer', 'Risk/RiskModel', 'Intervention/InterventionEvaluator', 'Content/ContentEffectiveness', 'Research/Pseudonymizer', 'Guidance/RemedialRecommender', 'Guidance/StudentGuidance'] as $f) require $S . $f . '.php';
+foreach (['Stats/Descriptive', 'Stats/Distributions', 'Stats/Inference', 'Stats/Logistic', 'Stats/Metrics', 'Stats/Ols', 'Risk/RiskScorer', 'Risk/RiskModel', 'Intervention/InterventionEvaluator', 'Content/ContentEffectiveness', 'Research/Pseudonymizer', 'Guidance/RemedialRecommender', 'Guidance/StudentGuidance'] as $f) require $S . $f . '.php';
 use App\Services\LearningAnalytics\Content\ContentEffectiveness;
 use App\Services\LearningAnalytics\Guidance\{RemedialRecommender, StudentGuidance};
 use App\Services\LearningAnalytics\Intervention\InterventionEvaluator;
@@ -64,13 +64,15 @@ $ok('DiD ≈ +2 dan signifikan', $ev['ready'] && abs($ev['did']['diff'] - 2) < 0
 $ok('sebelum–sesudah kelompok ditindaklanjuti signifikan', $ev['within']['p'] < 0.001);
 $ok('kelompok < 5 → tidak dievaluasi', ! (new InterventionEvaluator())->evaluate(array_slice($rows, 0, 3))['ready']);
 
-// ContentEffectiveness
-$gain = []; $done = [];
-for ($u = 1; $u <= 40; $u++) { $gain[$u] = $u <= 20 ? 20 + ($u % 5) : 5 + ($u % 5); if ($u <= 20) $done[] = $u; }
-$rank = (new ContentEffectiveness())->rank([['lesson' => 1, 'name' => 'L1', 'starts' => 30, 'submits' => 20, 'abandons' => 10, 'first_try_acc' => 0.6], ['lesson' => 2, 'name' => 'L2', 'starts' => 5, 'submits' => 5, 'abandons' => 0, 'first_try_acc' => 0.8]], [1 => $done, 2 => [1, 2]], $gain);
+// ContentEffectiveness (dosis–gain, kendali pretest). gain = 2 + 0,5·dosis − 0,1·pretest + derau kecil deterministik
+$gain = $pre = $d1 = [];
+for ($u = 1; $u <= 40; $u++) { $pre[$u] = 40 + ($u * 7) % 30; $d1[$u] = $u <= 25 ? ($u % 10) + 1 : 0; $gain[$u] = 2 + 0.5 * $d1[$u] - 0.1 * $pre[$u] + (($u * 13) % 7 - 3) * 0.2; }
+$rank = (new ContentEffectiveness())->rank([['lesson' => 1, 'name' => 'L1', 'starts' => 30, 'submits' => 20, 'abandons' => 10, 'first_try_acc' => 0.6], ['lesson' => 2, 'name' => 'L2', 'starts' => 5, 'submits' => 5, 'abandons' => 0, 'first_try_acc' => 0.8]], [1 => $d1, 2 => [1 => 3, 2 => 4]], $gain, $pre, [1 => [1, 2, 3]]);
 $l1 = array_values(array_filter($rank, fn ($x) => $x['lesson'] === 1))[0];
-$ok('L1: uplift ≈ 15 dan bertanda mengangkat skor + sering ditinggalkan', abs($l1['uplift'] - 15) < 0.5 && in_array('mengangkat skor', $l1['flags'], true) && in_array('sering ditinggalkan', $l1['flags'], true));
-$l2 = array_values(array_filter($rank, fn ($x) => $x['lesson'] === 2))[0]; $ok('L2: n kecil → tanpa uplift', $l2['uplift'] === null && $l2['flags'] === []);
+$ok('L1: β dosis ≈ +5 per 10 butir', $l1['per10'] !== null && abs($l1['per10'] - 5.0) < 0.6);
+$ok('L1: bertanda terkait kenaikan skor + sering ditinggalkan', in_array('terkait kenaikan skor', $l1['flags'], true) && in_array('sering ditinggalkan', $l1['flags'], true));
+$l2 = array_values(array_filter($rank, fn ($x) => $x['lesson'] === 2))[0]; $ok('L2: terpapar < 5 → tidak dihitung dengan alasan', $l2['per10'] === null && $l2['why_not'] !== null && $l2['flags'] === []);
+$ok('n selesai tidak menggembung', $l1['n_completed'] === 3);
 
 // Fase 5: pseudonimisasi
 $ps = new Pseudonymizer('rahasia-uji'); $ps2 = new Pseudonymizer('rahasia-lain');

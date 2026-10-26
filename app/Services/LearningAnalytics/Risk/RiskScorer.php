@@ -47,13 +47,19 @@ final class RiskScorer
      */
     public function score(array $f, float $inferThreshold, float $classMedianProgress): array
     {
+        if (! ($f['started'] ?? true)) {
+            return ['score' => 0.0, 'level' => 'belum_mulai', 'confidence' => 'terbatas', 'coverage' => 0.0,
+                'factors' => [['key' => 'not_started', 'label' => 'Belum mulai belajar', 'value' => 1.0, 'detail' => 'belum ada aktivitas latihan/pelajaran', 'action' => 'Ajak siswa memulai satu pelajaran singkat dan pastikan akun/kelas sudah benar.']],
+                'components' => array_fill_keys(array_keys(self::LABELS), null)];
+        }
         $c = [
             'inactivity' => $f['days_since_last'] === null ? 1.0 : min(1.0, $f['days_since_last'] / 14),
             'irregular' => $f['regularity_index'] === null ? null : 1 - $f['regularity_index'] / 100,
             'decline' => $f['trend_slope'] === null ? null : max(0.0, min(1.0, -$f['trend_slope'] / 2)),
             'hint_dependence' => $f['hint_l3_rate'] === null ? null : min(1.0, $f['hint_l3_rate'] / 0.30),
             'inferential' => min(1.0, ($f['infer'] ?? 0) / max(1.0, 2 * $inferThreshold)),
-            'lag' => $f['progress'] === null ? null : max(0.0, min(1.0, ($classMedianProgress - $f['progress']) / 0.5)),
+            // kelas yang seluruhnya masih rendah (median < 10%) tidak bermakna sebagai pembanding
+            'lag' => ($f['progress'] === null || $classMedianProgress < 0.10) ? null : max(0.0, min(1.0, ($classMedianProgress - $f['progress']) / 0.5)),
             'low_accuracy' => $f['first_try_acc'] === null ? null : 1 - $f['first_try_acc'],
             'wheel' => $f['wheel_n'] === null ? null : min(1.0, $f['wheel_n'] / 2),
         ];
@@ -80,12 +86,48 @@ final class RiskScorer
 
         return [
             'score' => $score,
-            'level' => $score >= $this->high ? 'tinggi' : ($score >= $this->medium ? 'sedang' : 'rendah'),
+            'level' => self::levelFor($score, $this->high, $this->medium),
             'confidence' => $coverage >= 0.8 ? 'cukup' : ($coverage >= 0.5 ? 'sebagian' : 'terbatas'),
             'coverage' => round($coverage, 2),
             'factors' => $factors,
             'components' => array_map(fn ($v) => $v === null ? null : round($v, 3), $c),
         ];
+    }
+
+    public static function levelFor(float $score, float $high, float $medium): string
+    {
+        return $score >= $high ? 'tinggi' : ($score >= $medium ? 'sedang' : 'rendah');
+    }
+
+    /**
+     * Kalibrasi ambang berbasis persentil pada siswa yang sudah mulai belajar:
+     * tinggi = max(floorHigh, persentil (100-pctHigh)), sedang = max(floorMed, persentil (100-pctHigh-pctMed)).
+     * Bila siswa < $minN, pakai ambang tetap. Lantai mencegah menandai skor yang sebenarnya rendah.
+     *
+     * @param float[] $scores
+     * @return array{high:float,medium:float,calibrated:bool,n:int}
+     */
+    public static function calibrate(array $scores, array $cfg, float $fixedHigh, float $fixedMedium): array
+    {
+        $n = count($scores);
+        if ($n < (int) ($cfg['min_n'] ?? 30)) {
+            return ['high' => $fixedHigh, 'medium' => $fixedMedium, 'calibrated' => false, 'n' => $n];
+        }
+        sort($scores);
+        $q = function (float $p) use ($scores, $n): float {
+            $pos = $p / 100 * ($n - 1);
+            $lo = (int) floor($pos);
+            $hi = (int) ceil($pos);
+
+            return $scores[$lo] + ($scores[$hi] - $scores[$lo]) * ($pos - $lo);
+        };
+        $pH = (float) ($cfg['pct_high'] ?? 8);
+        $pM = (float) ($cfg['pct_medium'] ?? 17);
+        $high = max((float) ($cfg['floor_high'] ?? 45), round($q(100 - $pH), 1));
+        $med = max((float) ($cfg['floor_medium'] ?? 25), round($q(100 - $pH - $pM), 1));
+        $med = min($med, $high);
+
+        return ['high' => $high, 'medium' => $med, 'calibrated' => true, 'n' => $n];
     }
 
     private function detail(string $k, array $f): string

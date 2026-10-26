@@ -4,7 +4,7 @@
     @php
         $card = 'rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/[0.03]';
         $pct = fn ($v) => $v === null ? '–' : rtrim(rtrim(number_format((float) $v, 1), '0'), '.') . '%';
-        $num = fn ($v, $d = 1) => $v === null ? '–' : rtrim(rtrim(number_format((float) $v, $d), '0'), '.');
+        $num = fn ($v, $d = 1) => $v === null ? '–' : (str_contains($__s = number_format((float) $v, $d), '.') ? rtrim(rtrim($__s, '0'), '.') : $__s);
         $ready = $report['ready'] ?? false;
         $tone = [
             'konsisten' => 'bg-green-500', 'sporadis' => 'bg-yellow-500', 'menumpuk' => 'bg-orange-500',

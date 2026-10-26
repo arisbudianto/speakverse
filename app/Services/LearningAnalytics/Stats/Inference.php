@@ -129,7 +129,7 @@ final class Inference
         }
         $g = ($mq - $mp) / (100 - $mp);
 
-        return ['pre' => $mp, 'post' => $mq, 'g' => $g, 'category' => $g >= 0.7 ? 'tinggi' : ($g >= 0.3 ? 'sedang' : 'rendah')];
+        return ['pre' => $mp, 'post' => $mq, 'g' => $g, 'category' => $g < 0 ? 'menurun' : ($g >= 0.7 ? 'tinggi' : ($g >= 0.3 ? 'sedang' : 'rendah'))];
     }
 
     /** Gain ternormalisasi per siswa; pre = 100 dilewati. */

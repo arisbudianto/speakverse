@@ -17,6 +17,9 @@ class ItemAnalysisService
             ->orderBy('a.id')
             ->select('a.id', 'a.assessment_submission_id as sub', 's.user_id as user', 's.type', 's.skill', 's.unit_id', 's.lesson_id',
                 'a.question_type', 'a.question_id', 'a.selected_option', 'a.is_correct');
+        if ($ex = \App\Services\LearningAnalytics\Cohort::excludedIds()) {
+            $q->whereNotIn('s.user_id', $ex);
+        }
         foreach ($q->cursor() as $r) {
             $rows[] = [
                 'sub' => (int) $r->sub, 'user' => (int) $r->user,
@@ -30,11 +33,12 @@ class ItemAnalysisService
         DB::transaction(function () use ($res, $now) {
             DB::table('la_item_stats')->delete();
             DB::table('la_form_stats')->delete();
+            $ext = \Illuminate\Support\Facades\Schema::hasColumn('la_form_stats', 'n_flagged');
             foreach (array_chunk($res['forms'], 200) as $c) {
                 DB::table('la_form_stats')->insert(array_map(fn ($f) => [
                     'form' => $f['form'], 'n' => $f['n'], 'k' => $f['k'], 'mean' => $f['mean'], 'sd' => $f['sd'],
                     'alpha' => $f['alpha'], 'sem' => $f['sem'], 'indicative' => $f['indicative'], 'computed_at' => $now,
-                ], $c));
+                ] + ($ext ? ['n_flagged' => $f['n_flagged'], 'n_flagged_severe' => $f['n_flagged_severe'], 'alpha_without_flagged' => $f['alpha_without_flagged']] : []), $c));
             }
             foreach (array_chunk($res['items'], 300) as $c) {
                 DB::table('la_item_stats')->insert(array_map(fn ($i) => [

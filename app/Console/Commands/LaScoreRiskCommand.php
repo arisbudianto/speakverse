@@ -14,7 +14,8 @@ class LaScoreRiskCommand extends Command
     public function handle(RiskService $svc): int
     {
         $r = $svc->run();
-        $this->info(sprintf('Selesai: %d siswa (tinggi %d, sedang %d, rendah %d). Model: %s.', $r['students'], $r['tinggi'], $r['sedang'], $r['rendah'],
+        $this->info(sprintf('Selesai: %d siswa (belum mulai %d; tinggi %d, sedang %d, rendah %d; ambang %s/%s%s). Model: %s.', $r['students'], $r['belum_mulai'], $r['tinggi'], $r['sedang'], $r['rendah'],
+            $r['thresholds']['high'], $r['thresholds']['medium'], $r['thresholds']['calibrated'] ? ', terkalibrasi' : ', tetap',
             $r['model_ready'] ? 'tampil, AUC-CV ' . round($r['auc'], 2) : 'tidak ditampilkan' . ($r['auc'] !== null ? ' (AUC-CV ' . round($r['auc'], 2) . ')' : ' (data belum cukup)')));
 
         return self::SUCCESS;

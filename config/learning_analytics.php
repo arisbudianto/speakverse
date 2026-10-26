@@ -25,6 +25,14 @@ return [
         'min_students_model' => 60,
         'min_class_model' => 15,
         'min_auc_to_show' => 0.70,
+        'started_min_items' => 10,    // butir terjawab agar dianggap "sudah mulai" bila tak ada hari aktif belajar
+        'calibration' => [            // ambang berbasis persentil pada siswa yang sudah mulai
+            'min_n' => 30, 'pct_high' => 8, 'pct_medium' => 17, 'floor_high' => 45, 'floor_medium' => 25,
+        ],
+    ],
+    'outcomes' => [
+        'nonequivalence_delta_p' => 0.10, // |rerata p butir pre − post| di atas ini → bentuk tes tidak sebanding
+        'min_group_icc' => 5,             // ICC/design effect butuh ≥ N siswa per kelompok dan ≥ 3 kelompok
     ],
     'engagement' => [
         'stop_days' => 14,

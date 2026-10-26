@@ -20,7 +20,7 @@ class StudentProgressController extends Controller
         $uid = $request->user()->id;
         $today = new DateTimeImmutable('today');
         $has = Schema::hasTable('la_mastery') && Schema::hasTable('la_daily_student');
-        $states = $has ? DB::table('la_mastery')->where('user_id', $uid)->orderBy('competency')->get(['competency', 'p_mastery', 'n_obs']) : collect();
+        $states = $has ? DB::table('la_mastery')->where('user_id', $uid)->when(Schema::hasColumn('la_mastery', 'reliable'), fn ($q) => $q->where('reliable', true))->orderBy('competency')->get(['competency', 'p_mastery', 'n_obs']) : collect();
         $active = $has ? DB::table('la_daily_student')->where('user_id', $uid)->where('date', '>=', $today->modify('-27 days')->format('Y-m-d'))->pluck('date')->map(fn ($d) => substr((string) $d, 0, 10))->flip()->map(fn () => true)->all() : [];
         $weekly = StudentGuidance::weekly($active, $today);
         $next = StudentGuidance::nextStep($states->map(fn ($s) => ['competency' => $s->competency, 'p' => (float) $s->p_mastery, 'n_obs' => (int) $s->n_obs])->all());
@@ -36,10 +36,20 @@ class StudentProgressController extends Controller
 
     public function consent(Request $request): RedirectResponse
     {
-        $v = $request->validate(['accepted' => ['required', 'boolean']]);
+        $v = $request->validate(['accepted' => ['required', 'in:0,1,later']]);
         abort_unless(Schema::hasTable('la_consents'), 404);
-        DB::table('la_consents')->updateOrInsert(['user_id' => $request->user()->id], ['version' => self::CONSENT_VERSION, 'accepted' => (bool) $v['accepted'], 'answered_at' => now()]);
+        if ($v['accepted'] === 'later') {
+            $request->session()->put('la_consent_snooze_until', now()->addDays(3)->timestamp);
 
-        return back()->with('status', $v['accepted'] ? 'Terima kasih, persetujuan Anda tersimpan.' : 'Pilihan Anda tersimpan. Data Anda tidak disertakan dalam ekspor riset.');
+            return back();
+        }
+        $row = ['version' => self::CONSENT_VERSION, 'accepted' => $v['accepted'] === '1', 'answered_at' => now()];
+        if (Schema::hasColumn('la_consents', 'source')) {
+            $row += ['source' => 'siswa', 'batch_id' => null];
+        }
+        DB::table('la_consents')->updateOrInsert(['user_id' => $request->user()->id], $row);
+        $request->session()->forget('la_consent_snooze_until');
+
+        return back()->with('status', $row['accepted'] ? 'Terima kasih, persetujuan Anda tersimpan.' : 'Pilihan Anda tersimpan. Data Anda tidak disertakan dalam ekspor riset.');
     }
 }

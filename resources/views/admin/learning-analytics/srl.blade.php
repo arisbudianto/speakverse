@@ -3,7 +3,7 @@
 @section('content')
     @php
         $card = 'rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/[0.03]';
-        $num = fn ($v, $d = 2) => $v === null ? '–' : rtrim(rtrim(number_format((float) $v, $d), '0'), '.');
+        $num = fn ($v, $d = 2) => $v === null ? '–' : (str_contains($__s = number_format((float) $v, $d), '.') ? rtrim(rtrim($__s, '0'), '.') : $__s);
         $pc = fn ($v) => $v === null ? '–' : round($v * 100) . '%';
     @endphp
 
@@ -72,14 +72,14 @@
                 <div class="{{ $card }}">
                     <h2 class="text-lg font-black">Hubungan perilaku dengan kenaikan skor (Spearman)</h2>
                     <table class="mt-3 w-full text-left text-sm">
-                        <thead class="text-xs uppercase text-slate-500"><tr><th class="py-1">Fitur</th><th>ρ</th><th>p</th><th>n</th></tr></thead>
+                        <thead class="text-xs uppercase text-slate-500"><tr><th class="py-1">Fitur</th><th>ρ</th><th>p</th><th>p Holm</th><th>q BH</th><th>n</th></tr></thead>
                         <tbody class="divide-y divide-slate-100 dark:divide-white/5">
                             @foreach ($correlations as $f => $c)
-                                <tr><td class="py-1">{{ $featureLabels[$f] ?? $f }}</td><td>{{ $num($c['rho']) }}</td><td class="{{ $c['p'] !== null && $c['p'] < 0.05 ? 'font-bold text-green-600' : '' }}">{{ $c['p'] === null ? '–' : ($c['p'] < 0.001 ? '< 0,001' : $num($c['p'], 3)) }}</td><td>{{ $c['n'] }}</td></tr>
+                                <tr><td class="py-1">{{ $featureLabels[$f] ?? $f }}</td><td>{{ $num($c['rho']) }}</td><td class="{{ $c['p'] !== null && $c['p'] < 0.05 ? 'font-bold text-green-600' : '' }}">{{ $c['p'] === null ? '–' : ($c['p'] < 0.001 ? '< 0,001' : $num($c['p'], 3)) }}</td><td class="{{ ($c['p_holm'] ?? null) !== null && $c['p_holm'] < 0.05 ? 'font-bold text-green-600' : '' }}">{{ ($c['p_holm'] ?? null) === null ? '–' : ($c['p_holm'] < 0.001 ? '< 0,001' : $num($c['p_holm'], 3)) }}</td><td>{{ ($c['p_bh'] ?? null) === null ? '–' : ($c['p_bh'] < 0.001 ? '< 0,001' : $num($c['p_bh'], 3)) }}</td><td>{{ $c['n'] }}</td></tr>
                             @endforeach
                         </tbody>
                     </table>
-                    <p class="mt-3 text-xs text-slate-500">Korelasi tidak berarti sebab-akibat: siswa yang sudah kuat memang cenderung lebih sedikit memakai hint. Tanpa koreksi perbandingan ganda.</p>
+                    <p class="mt-3 text-xs text-slate-500">Korelasi tidak berarti sebab-akibat: siswa yang sudah kuat memang cenderung lebih sedikit memakai hint. Hijau tebal = signifikan (p &lt; 0,05); p Holm mengendalikan galat keluarga, q BH mengendalikan laju temuan palsu. Seluruh analisis ini eksploratori. Bila bentuk pre/post tidak setara, gunakan korelasi hanya sebagai urutan relatif siswa.</p>
                 </div>
             @endif
 

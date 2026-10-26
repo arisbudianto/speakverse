@@ -1,4 +1,5 @@
 <x-app-layout>
+    @include('admin.learning-analytics._colors')
     @php
         $card = 'rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5';
         $colors = ['green' => 'bg-green-500', 'cyan' => 'bg-cyan-400', 'yellow' => 'bg-yellow-400', 'orange' => 'bg-orange-400'];

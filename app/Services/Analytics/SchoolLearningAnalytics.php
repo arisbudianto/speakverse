@@ -30,10 +30,7 @@ class SchoolLearningAnalytics
 
     public function load(): array
     {
-        $students = User::query()
-            ->where(function ($q) {
-                $q->where('role', 'student')->orWhereNull('role')->orWhere('role', 'user');
-            })
+        $students = \App\Services\LearningAnalytics\Cohort::students()
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'school', 'major', 'grade', 'parallel', 'xp', 'last_activity_date'])
             ->map(fn ($u) => [

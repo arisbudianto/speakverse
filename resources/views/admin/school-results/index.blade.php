@@ -2,7 +2,7 @@
 
 @section('content')
     @php
-        $fmt = fn ($v, $d = 1) => $v === null ? '–' : rtrim(rtrim(number_format((float) $v, $d), '0'), '.');
+        $fmt = fn ($v, $d = 1) => $v === null ? '–' : (str_contains($__s = number_format((float) $v, $d), '.') ? rtrim(rtrim($__s, '0'), '.') : $__s);
         $pct = fn ($v) => $v === null ? '–' : number_format((float) $v, 0) . '%';
         $tone = function ($v) {
             if ($v === null) { return 'bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-400'; }

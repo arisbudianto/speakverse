@@ -39,8 +39,9 @@ final class EngagementMetrics
         'menumpuk' => 'Belajar menumpuk',
         'menurun' => 'Aktivitas menurun',
         'berhenti' => 'Berhenti belajar',
-        'tidak_aktif' => 'Tidak aktif',
+        'tidak_aktif' => 'Belum mulai',
         'baru' => 'Data belum cukup',
+        'hanya_tes' => 'Hanya ikut tes',
     ];
 
     public function __construct(private array $cfg = [])
@@ -52,6 +53,15 @@ final class EngagementMetrics
             'consistent_ri' => 65.0,  // regularity_index ≥ ini → konsisten
             'min_days' => 3,          // hari aktif minimal agar pola dinilai
         ];
+    }
+
+    /**
+     * Hari aktif BELAJAR: bila kolom pemisahan ada, hanya hari dengan aktivitas latihan/pelajaran (learn_events > 0);
+     * hari yang hanya berisi pretest/posttest tidak dihitung. Tanpa kolom itu: perilaku lama (semua jejak).
+     */
+    public static function isLearningDay(array $row): bool
+    {
+        return array_key_exists('learn_events', $row) ? $row['learn_events'] > 0 : ($row['events'] > 0 || $row['sessions'] > 0);
     }
 
     /** @return array<string,mixed> */
@@ -73,7 +83,7 @@ final class EngagementMetrics
             $row = $days[$key] ?? null;
             $pos = self::WINDOW - 1 - $i;
             $series[] = $row ? $row['active_seconds'] / 60 : 0.0;
-            if ($row && ($row['events'] > 0 || $row['sessions'] > 0)) {
+            if ($row && self::isLearningDay($row)) {
                 $activeIdx[] = $pos;
                 $weekDays[intdiv($pos, 7)]++;
                 $dow[(int) $d->format('N') - 1]++;
@@ -88,7 +98,12 @@ final class EngagementMetrics
 
         // hari sejak aktif terakhir: cari di SELURUH data (bisa di luar jendela)
         $last = null;
-        foreach (array_keys($days) as $k) {
+        $testOnly = 0;
+        foreach ($days as $k => $r) {
+            if (! self::isLearningDay($r)) {
+                $testOnly += ($r['test_events'] ?? 0) > 0 ? 1 : 0;
+                continue;
+            }
             $last = ($last === null || $k > $last) ? $k : $last;
         }
         $daysSince = $last === null ? null : (int) $today->diff(new DateTimeImmutable($last))->days;
@@ -146,6 +161,7 @@ final class EngagementMetrics
             'trend_slope' => $slope === null ? null : round($slope, 2),
             'peak_hour' => $hours === [] ? null : (int) array_key_first($hours),
             'regularity_index' => $ri,
+            'test_only_days' => $testOnly,
         ];
         $out['pattern'] = $this->classify($out);
 
@@ -160,7 +176,7 @@ final class EngagementMetrics
     {
         $c = $this->cfg;
         if ($m['days_since_last'] === null) {
-            return 'tidak_aktif';
+            return ($m['test_only_days'] ?? 0) > 0 ? 'hanya_tes' : 'tidak_aktif';
         }
         if ($m['days_since_last'] >= $c['stop_days']) {
             return 'berhenti';
@@ -199,7 +215,9 @@ final class EngagementMetrics
                 $ri[] = $s['regularity_index'];
             }
             $ad[] = $s['active_days'];
-            $mins[] = $s['minutes'];
+            if ($s['active_days'] > 0) {
+                $mins[] = $s['minutes'];   // median menit hanya pada siswa yang pernah belajar pada jendela
+            }
             if ($s['peak_hour'] !== null) {
                 $hours[$s['peak_hour']]++;
             }

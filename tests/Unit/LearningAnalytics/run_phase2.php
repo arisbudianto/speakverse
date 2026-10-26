@@ -3,7 +3,7 @@
 // Nilai acuan dihasilkan SciPy/NumPy (fixtures/gen_*.py) dan disimpan sebagai JSON agar uji bisa diulang tanpa Python.
 $S = dirname(__DIR__, 3) . '/app/Services/LearningAnalytics/';
 $F = __DIR__ . '/fixtures/';
-foreach (['Stats/Descriptive', 'Stats/Distributions', 'Stats/Inference', 'Items/ItemAnalyzer', 'Outcome/OutcomeAnalysis'] as $f) require $S . $f . '.php';
+foreach (['Stats/Descriptive', 'Stats/Correlation', 'Stats/Distributions', 'Stats/Inference', 'Items/ItemAnalyzer', 'Outcome/OutcomeAnalysis'] as $f) require $S . $f . '.php';
 use App\Services\LearningAnalytics\Items\ItemAnalyzer;
 use App\Services\LearningAnalytics\Outcome\OutcomeAnalysis;
 use App\Services\LearningAnalytics\Stats\{Distributions as X, Inference as I};

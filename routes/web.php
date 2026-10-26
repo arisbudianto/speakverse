@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\LearningAnalyticsOutcomeController;
 use App\Http\Controllers\Admin\LearningAnalyticsBehaviorController;
 use App\Http\Controllers\Admin\LearningAnalyticsRiskController;
 use App\Http\Controllers\Admin\LearningAnalyticsResearchController;
+use App\Http\Controllers\Admin\LearningAnalyticsCohortController;
 use App\Http\Controllers\Staff\ClassAnalyticsController;
 use App\Http\Controllers\StudentProgressController;
 use App\Http\Controllers\Admin\UserController;
@@ -843,6 +844,14 @@ Route::middleware([
         Route::get('/learning-analytics/research', [LearningAnalyticsResearchController::class, 'index'])->name('admin.la.research');
         Route::post('/learning-analytics/research/group', [LearningAnalyticsResearchController::class, 'setGroup'])->name('admin.la.research.group');
         Route::post('/learning-analytics/research/export', [LearningAnalyticsResearchController::class, 'export'])->name('admin.la.research.export');
+        Route::post('/learning-analytics/research/meta', [LearningAnalyticsResearchController::class, 'saveMeta'])->name('admin.la.research.meta');
+        Route::post('/learning-analytics/research/consent-batch', [LearningAnalyticsResearchController::class, 'consentBatch'])->name('admin.la.research.consent_batch');
+        Route::post('/learning-analytics/research/consent-batch/{batch}/revoke', [LearningAnalyticsResearchController::class, 'consentRevoke'])->name('admin.la.research.consent_revoke');
+        Route::get('/learning-analytics/research/codebook', [LearningAnalyticsResearchController::class, 'codebook'])->name('admin.la.research.codebook');
+        Route::get('/learning-analytics/cohort', [LearningAnalyticsCohortController::class, 'index'])->name('admin.la.cohort');
+        Route::post('/learning-analytics/cohort', [LearningAnalyticsCohortController::class, 'mark'])->name('admin.la.cohort.mark');
+        Route::post('/learning-analytics/items/review', [LearningAnalyticsOutcomeController::class, 'reviewItem'])->name('admin.la.items.review');
+        Route::post('/learning-analytics/interventions/bulk', [LearningAnalyticsRiskController::class, 'bulkIntervention'])->name('admin.la.interventions.bulk');
         Route::get('/learning-analytics/method', [LearningAnalyticsResearchController::class, 'methodology'])->name('admin.la.method');
 
         });

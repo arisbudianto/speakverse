@@ -1,6 +1,7 @@
 @extends('layouts.admin')
 
 @section('content')
+    @include('admin.learning-analytics._colors')
     @php
         $card = 'rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/[0.03]';
         $badge = ['tinggi' => 'bg-red-100 text-red-700', 'sedang' => 'bg-yellow-100 text-yellow-800', 'rendah' => 'bg-green-100 text-green-700'];

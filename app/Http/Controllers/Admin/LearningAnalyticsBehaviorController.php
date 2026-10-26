@@ -23,16 +23,24 @@ class LearningAnalyticsBehaviorController extends Controller
 
                 return $c;
             });
-            $wheel = DB::table('la_mastery as m')
-                ->join('users as u', 'u.id', '=', 'm.user_id')
-                ->where('m.wheel_spinning', true)
-                ->orderByDesc('m.n_obs')
-                ->limit(30)
-                ->get(['u.name', 'u.school', 'u.grade', 'u.major', 'u.parallel', 'm.competency', 'm.p_mastery', 'm.n_obs']);
+            $hasRel = Schema::hasColumn('la_mastery', 'reliable');
+            $rows = \App\Services\LearningAnalytics\Cohort::whereJoined(DB::table('la_mastery as m')->join('users as u', 'u.id', '=', 'm.user_id'))
+                ->where('m.wheel_spinning', true)->orderByDesc('m.n_obs')
+                ->get(['u.id as uid', 'u.name', 'u.school', 'u.grade', 'u.major', 'u.parallel', 'm.competency', 'm.p_mastery', 'm.n_obs']);
+            // satu baris per siswa; kompetensi sebagai daftar
+            $grouped = [];
+            foreach ($rows as $r) {
+                $g = $grouped[$r->uid] ??= (object) ['name' => $r->name, 'school' => $r->school, 'grade' => $r->grade, 'major' => $r->major, 'parallel' => $r->parallel, 'items' => [], 'max' => 0];
+                $g->items[] = ['competency' => $r->competency, 'p' => (float) $r->p_mastery, 'n' => (int) $r->n_obs];
+                $g->max = max($g->max, (int) $r->n_obs);
+            }
+            usort($grouped, fn ($a, $b) => [count($b->items), $b->max] <=> [count($a->items), $a->max]);
+            $wheelTotal = count($grouped);
+            $wheel = collect(array_slice($grouped, 0, 50));
             $computed = DB::table('la_bkt_params')->max('computed_at');
         }
 
-        return view('admin.learning-analytics.mastery', compact('ready', 'comps', 'wheel', 'computed'));
+        return view('admin.learning-analytics.mastery', compact('ready', 'comps', 'wheel', 'computed') + ['wheelTotal' => $wheelTotal ?? 0]);
     }
 
     public function srl(): View

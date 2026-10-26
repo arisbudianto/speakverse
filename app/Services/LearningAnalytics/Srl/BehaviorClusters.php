@@ -3,6 +3,7 @@
 namespace App\Services\LearningAnalytics\Srl;
 
 use App\Services\LearningAnalytics\Stats\Correlation;
+use App\Services\LearningAnalytics\Stats\Multiple;
 use App\Services\LearningAnalytics\Stats\Descriptive as D;
 use App\Services\LearningAnalytics\Stats\KMeans;
 
@@ -148,6 +149,13 @@ final class BehaviorClusters
             if ($c && $c['n'] >= 10) {
                 $res[$name] = ['rho' => round($c['rho'], 3), 'p' => $c['p'] === null ? null : round($c['p'], 4), 'n' => $c['n']];
             }
+        }
+
+        $holm = Multiple::holm(array_map(fn ($r) => $r['p'], $res));
+        $bh = Multiple::benjaminiHochberg(array_map(fn ($r) => $r['p'], $res));
+        foreach ($res as $k => $r) {
+            $res[$k]['p_holm'] = $holm[$k] === null ? null : round($holm[$k], 4);
+            $res[$k]['p_bh'] = $bh[$k] === null ? null : round($bh[$k], 4);
         }
 
         return $res;
