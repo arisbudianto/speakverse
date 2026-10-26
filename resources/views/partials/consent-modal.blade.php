@@ -17,7 +17,7 @@
     <div style="position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px">
         <div style="max-width:520px;width:100%;background:#fff;color:#0f172a;border-radius:24px;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.3)">
             <h2 style="font-size:20px;font-weight:900;margin:0">Izin penggunaan data untuk penelitian</h2>
-            <p style="margin:12px 0 0;font-size:14px;line-height:1.5">Data belajarmu di SpeakVerse dapat dipakai untuk penelitian pembelajaran bahasa Inggris <b>tanpa nama dan identitas</b> (memakai kode acak). Menolak <b>tidak memengaruhi</b> nilai atau akses belajarmu, dan kamu bisa mengubah pilihan kapan saja di halaman Progres Saya.</p>
+            <p style="margin:12px 0 0;font-size:14px;line-height:1.5">Data belajarmu di SpeakVerse dapat dipakai untuk penelitian pembelajaran bahasa Inggris <b>tanpa nama dan identitas</b> (memakai kode acak), termasuk jejak halaman yang kamu buka (nama halaman dan waktu saja, tanpa isi). Menolak <b>tidak memengaruhi</b> nilai atau akses belajarmu, dan kamu bisa mengubah pilihan kapan saja di halaman Progres Saya.</p>
             @if (! empty($__meta['ethics_no']))<p style="margin:8px 0 0;font-size:12px;color:#64748b">Persetujuan etik: {{ $__meta['ethics_no'] }}</p>@endif
             @if (! empty($__meta['contact']))<p style="margin:4px 0 0;font-size:12px;color:#64748b">Pertanyaan: {{ $__meta['contact'] }}</p>@endif
             <form method="POST" action="{{ route('progress.consent') }}" style="margin-top:16px;display:flex;flex-wrap:wrap;gap:8px">

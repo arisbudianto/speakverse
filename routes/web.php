@@ -849,9 +849,14 @@ Route::middleware([
         Route::post('/learning-analytics/research/consent-batch/{batch}/revoke', [LearningAnalyticsResearchController::class, 'consentRevoke'])->name('admin.la.research.consent_revoke');
         Route::get('/learning-analytics/research/codebook', [LearningAnalyticsResearchController::class, 'codebook'])->name('admin.la.research.codebook');
         Route::get('/learning-analytics/cohort', [LearningAnalyticsCohortController::class, 'index'])->name('admin.la.cohort');
+        Route::post('/learning-analytics/cohort/scope', [LearningAnalyticsCohortController::class, 'scope'])->name('admin.la.cohort.scope');
+        Route::get('/learning-analytics/cohort/merge', [LearningAnalyticsCohortController::class, 'mergePreview'])->name('admin.la.cohort.merge');
+        Route::post('/learning-analytics/cohort/merge', [LearningAnalyticsCohortController::class, 'merge'])->name('admin.la.cohort.merge.do');
+        Route::post('/learning-analytics/cohort/merge/{id}/undo', [LearningAnalyticsCohortController::class, 'mergeUndo'])->name('admin.la.cohort.merge.undo');
         Route::post('/learning-analytics/cohort', [LearningAnalyticsCohortController::class, 'mark'])->name('admin.la.cohort.mark');
         Route::post('/learning-analytics/items/review', [LearningAnalyticsOutcomeController::class, 'reviewItem'])->name('admin.la.items.review');
         Route::post('/learning-analytics/interventions/bulk', [LearningAnalyticsRiskController::class, 'bulkIntervention'])->name('admin.la.interventions.bulk');
+        Route::get('/learning-analytics/report', [\App\Http\Controllers\Admin\LearningAnalyticsReportController::class, 'show'])->name('admin.la.report');
         Route::get('/learning-analytics/method', [LearningAnalyticsResearchController::class, 'methodology'])->name('admin.la.method');
 
         });

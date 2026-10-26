@@ -83,10 +83,10 @@
 
             <div class="{{ $card }}">
                 <h2 class="text-lg font-black">Kandidat duplikat (nama sama)</h2>
-                <p class="mt-1 text-xs text-slate-500">Tinjau satu per satu: bisa orang yang berbeda dengan nama sama. Untuk akun ganda, kecualikan akun yang tidak dipakai (riwayat belajar tidak dipindahkan atau dihapus). Penggabungan akun belum tersedia.</p>
+                <p class="mt-1 text-xs text-slate-500">Tinjau satu per satu: bisa orang yang berbeda dengan nama sama. Untuk akun ganda, gunakan "Gabungkan…" (riwayat belajar dipindahkan ke akun utama, tidak ada yang dihapus, dapat dibatalkan) atau cukup kecualikan akun yang tidak dipakai.</p>
                 @forelse ($dups as $d)
                     <div class="mt-4 rounded-2xl border border-slate-200 p-3 dark:border-white/10">
-                        <p class="font-bold">{{ $d['name'] }}</p>
+                        <p class="font-bold">{{ $d['name'] }} <a class="ml-2 text-xs font-semibold text-purple-500 underline" href="{{ route('admin.la.cohort.merge', ['source' => $d['users'][0]->id, 'target' => $d['users'][1]->id]) }}">Gabungkan…</a></p>
                         @foreach ($d['users'] as $u)<p class="text-sm text-slate-600">#{{ $u->id }} · {{ $u->email }} · {{ $u->school ?: '(Belum diisi)' }} · {{ $u->grade }} {{ $u->major }} {{ $u->parallel }} · dibuat {{ \Illuminate\Support\Carbon::parse($u->created_at)->format('d/m/Y') }}@if ($u->exclude_from_analytics) · <b class="text-orange-600">dikecualikan</b>@endif</p>@endforeach
                     </div>
                 @empty<p class="mt-3 text-sm text-slate-500">Tidak ditemukan.</p>@endforelse

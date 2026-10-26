@@ -32,11 +32,13 @@ class LearningAnalyticsOutcomeController extends Controller
             $eq = (new FormComparability((float) $cfg['nonequivalence_delta_p']))->analyze(
                 DB::table('la_item_stats')->get(['form', 'item', 'p', 'n'])->map(fn ($i) => ['form' => $i->form, 'item' => $i->item, 'p' => (float) $i->p, 'n' => (int) $i->n])->all());
         }
+        $grp = Schema::hasColumn('users', 'research_group') ? DB::table('users')->whereIn('id', array_column($report['students'], 'id'))->pluck('research_group', 'id')->all() : [];
+        $ml = (new \App\Services\LearningAnalytics\Outcome\MultilevelOutcome())->analyze($report['students'], $grp);
         $total = count(array_filter($report['students'], fn ($s) => ! $school || ($s['school'] ?: '(Belum diisi)') === $school));
         $ex = Cohort::excludedSummary();
 
         return view('admin.learning-analytics.outcomes', [
-            'eq' => $eq, 'coverage' => $total ? ['students' => $total, 'pct' => round(100 * $a['pairs'] / $total, 1)] : null,
+            'eq' => $eq, 'ml' => $ml, 'coverage' => $total ? ['students' => $total, 'pct' => round(100 * $a['pairs'] / $total, 1)] : null,
             'cohortNote' => $ex ? 'Dikecualikan dari analisis: ' . implode(', ', array_map(fn ($k, $v) => "$v $k", array_keys($ex), $ex)) . '.' : null,
             'a' => $a,
             'schoolOptions' => array_column($report['schools'], 'school'),

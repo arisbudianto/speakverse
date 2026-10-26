@@ -15,6 +15,12 @@ final class DaysLoader
         return self::$split ??= Schema::hasColumn('la_daily_student', 'learn_events');
     }
 
+    /** Batasi query la_daily_student ke hari BELAJAR (bukan hari tes-saja / kunjungan-saja). */
+    public static function learningOnly($query)
+    {
+        return self::hasSplit() ? $query->where('learn_events', '>', 0) : $query->where(fn ($w) => $w->where('events', '>', 0)->orWhere('sessions', '>', 0));
+    }
+
     /**
      * @param int[] $ids
      * @return array<int,array<string,array<string,int>>> user => 'Y-m-d' => [...]
@@ -25,6 +31,10 @@ final class DaysLoader
         if (self::hasSplit()) {
             array_push($cols, 'learn_events', 'test_events');
         }
+        $pv = Schema::hasColumn('la_daily_student', 'page_views');
+        if ($pv) {
+            $cols[] = 'page_views';
+        }
         $days = [];
         foreach (array_chunk($ids, 800) as $chunk) {
             foreach (DB::table('la_daily_student')->whereIn('user_id', $chunk)->where('date', '>=', $from)->get($cols) as $r) {
@@ -32,6 +42,9 @@ final class DaysLoader
                 if (self::hasSplit()) {
                     $row['learn_events'] = (int) $r->learn_events;
                     $row['test_events'] = (int) $r->test_events;
+                }
+                if ($pv) {
+                    $row['page_views'] = (int) $r->page_views;
                 }
                 $days[(int) $r->user_id][substr((string) $r->date, 0, 10)] = $row;
             }

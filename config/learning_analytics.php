@@ -37,4 +37,8 @@ return [
     'engagement' => [
         'stop_days' => 14,
     ],
+    'page_log' => [
+        'enabled' => env('LA_PAGE_LOG', true),   // catat kunjungan halaman siswa (hanya nama rute + waktu)
+        'retention_days' => 180,
+    ],
 ];

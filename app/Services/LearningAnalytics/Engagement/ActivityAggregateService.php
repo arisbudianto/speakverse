@@ -75,9 +75,40 @@ class ActivityAggregateService
                 DB::table('la_daily_student')->upsert($b, ['user_id', 'date'], $upd);
             }
             $rows += count($batch);
+            $this->pageViews($chunk, $since);
         }
+        $this->prune();
 
         return ['students' => count($ids), 'rows' => $rows];
+    }
+
+    /** Kunjungan halaman per hari → la_daily_student.page_views (membuat baris kosong untuk hari yang hanya berisi kunjungan). */
+    private function pageViews(array $ids, Carbon $since): void
+    {
+        if (! Schema::hasTable('la_page_views') || ! Schema::hasColumn('la_daily_student', 'page_views')) {
+            return;
+        }
+        $rows = DB::table('la_page_views')->whereIn('user_id', $ids)->where('created_at', '>=', $since)
+            ->selectRaw('user_id, DATE(created_at) d, COUNT(*) c')->groupBy('user_id', 'd')->get();
+        // hari yang tidak lagi punya kunjungan: nolkan agar idempoten setelah pemangkasan
+        DB::table('la_daily_student')->whereIn('user_id', $ids)->where('date', '>=', $since->format('Y-m-d'))->where('page_views', '>', 0)->update(['page_views' => 0]);
+        $now = now();
+        $batch = $rows->map(fn ($r) => ['user_id' => (int) $r->user_id, 'date' => $r->d, 'sessions' => 0, 'active_seconds' => 0, 'events' => 0, 'peak_hour' => 0,
+            'learn_events' => 0, 'test_events' => 0, 'page_views' => min(65535, (int) $r->c), 'computed_at' => $now])->all();
+        $cols = ['page_views'];
+        if (! Schema::hasColumn('la_daily_student', 'learn_events')) {
+            $batch = array_map(fn ($r) => array_diff_key($r, ['learn_events' => 1, 'test_events' => 1]), $batch);
+        }
+        foreach (array_chunk($batch, 500) as $b) {
+            DB::table('la_daily_student')->upsert($b, ['user_id', 'date'], $cols);
+        }
+    }
+
+    private function prune(): void
+    {
+        if (Schema::hasTable('la_page_views')) {
+            DB::table('la_page_views')->where('created_at', '<', now()->subDays((int) config('learning_analytics.page_log.retention_days', 180)))->delete();
+        }
     }
 
     /** assessment_submissions: pretest/posttest → $test; type 'unit' → $learn. */

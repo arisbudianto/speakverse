@@ -70,7 +70,7 @@ class LearningAnalyticsResearchController extends Controller
             'parallel' => ['nullable', Rule::in(['A', 'B', 'C', 'D'])],
             'group' => ['nullable', Rule::in(['kontrol', 'perlakuan'])],
         ]);
-        $q = Cohort::students()->where('school', $v['school']);
+        $q = Cohort::students(false)->where('school', $v['school']);
         foreach (['grade', 'parallel'] as $f) {
             if (! empty($v[$f])) {
                 $q->where($f, $v[$f]);
@@ -101,7 +101,7 @@ class LearningAnalyticsResearchController extends Controller
             'basis' => ['required', 'in:sekolah,orangtua'], 'decision' => ['required', 'in:setuju,tolak'],
             'document_no' => ['required', 'string', 'min:3', 'max:120'], 'note' => ['nullable', 'string', 'max:500'],
         ]);
-        $q = Cohort::students()->where('school', $v['school']);
+        $q = Cohort::students(false)->where('school', $v['school']);
         foreach (['grade', 'parallel'] as $f) {
             if (! empty($v[$f])) {
                 $q->where($f, $v[$f]);

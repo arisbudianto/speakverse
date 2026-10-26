@@ -99,8 +99,10 @@ final class EngagementMetrics
         // hari sejak aktif terakhir: cari di SELURUH data (bisa di luar jendela)
         $last = null;
         $testOnly = 0;
+        $visitOnly = 0;
         foreach ($days as $k => $r) {
             if (! self::isLearningDay($r)) {
+                $visitOnly += ($r['page_views'] ?? 0) > 0 ? 1 : 0;
                 $testOnly += ($r['test_events'] ?? 0) > 0 ? 1 : 0;
                 continue;
             }
@@ -162,6 +164,7 @@ final class EngagementMetrics
             'peak_hour' => $hours === [] ? null : (int) array_key_first($hours),
             'regularity_index' => $ri,
             'test_only_days' => $testOnly,
+            'visit_only_days' => $visitOnly,
         ];
         $out['pattern'] = $this->classify($out);
 

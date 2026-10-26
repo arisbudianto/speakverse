@@ -21,7 +21,7 @@ class StudentProgressController extends Controller
         $today = new DateTimeImmutable('today');
         $has = Schema::hasTable('la_mastery') && Schema::hasTable('la_daily_student');
         $states = $has ? DB::table('la_mastery')->where('user_id', $uid)->when(Schema::hasColumn('la_mastery', 'reliable'), fn ($q) => $q->where('reliable', true))->orderBy('competency')->get(['competency', 'p_mastery', 'n_obs']) : collect();
-        $active = $has ? DB::table('la_daily_student')->where('user_id', $uid)->where('date', '>=', $today->modify('-27 days')->format('Y-m-d'))->pluck('date')->map(fn ($d) => substr((string) $d, 0, 10))->flip()->map(fn () => true)->all() : [];
+        $active = $has ? \App\Services\LearningAnalytics\Engagement\DaysLoader::learningOnly(DB::table('la_daily_student')->where('user_id', $uid)->where('date', '>=', $today->modify('-27 days')->format('Y-m-d')))->pluck('date')->map(fn ($d) => substr((string) $d, 0, 10))->flip()->map(fn () => true)->all() : [];
         $weekly = StudentGuidance::weekly($active, $today);
         $next = StudentGuidance::nextStep($states->map(fn ($s) => ['competency' => $s->competency, 'p' => (float) $s->p_mastery, 'n_obs' => (int) $s->n_obs])->all());
         $consent = Schema::hasTable('la_consents') ? DB::table('la_consents')->where('user_id', $uid)->first() : null;

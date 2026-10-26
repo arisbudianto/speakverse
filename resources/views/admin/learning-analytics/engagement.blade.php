@@ -181,7 +181,7 @@
                         <div class="mt-4 overflow-x-auto">
                             <table class="w-full min-w-[720px] text-left text-sm">
                                 <thead class="text-xs uppercase text-slate-500">
-                                    <tr><th class="py-2">Nama</th><th>Sekolah</th><th>Kelas</th><th>Pola</th><th>Hari sejak aktif</th><th>Hari aktif</th><th>Tren</th></tr>
+                                    <tr><th class="py-2">Nama</th><th>Sekolah</th><th>Kelas</th><th>Pola</th><th>Hari sejak aktif</th><th>Hari aktif</th><th>Tren</th><th>Kunjungan tanpa belajar</th></tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-100 dark:divide-white/5">
                                     @foreach ($report['attention'] as $p)
@@ -193,6 +193,7 @@
                                             <td>{{ $p['days_since_last'] ?? '–' }}</td>
                                             <td>{{ $p['active_days'] }}</td>
                                             <td>{{ $num($p['trend_slope']) }}</td>
+                                            <td>{{ $p['visit_only_days'] ?? '–' }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>

@@ -43,7 +43,7 @@ class InterventionService
 
     private function activeDays(int $uid, DateTimeImmutable $from, DateTimeImmutable $to): int
     {
-        return (int) DB::table('la_daily_student')->where('user_id', $uid)->whereBetween('date', [$from->format('Y-m-d'), $to->format('Y-m-d')])->count();
+        return (int) \App\Services\LearningAnalytics\Engagement\DaysLoader::learningOnly(DB::table('la_daily_student')->where('user_id', $uid)->whereBetween('date', [$from->format('Y-m-d'), $to->format('Y-m-d')]))->count();
     }
 
     /**

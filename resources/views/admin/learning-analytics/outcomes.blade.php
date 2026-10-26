@@ -211,6 +211,25 @@
                 </div>
             </div>
 
+            <div class="{{ $card }}">
+                <h2 class="text-lg font-black">Model multilevel (siswa dalam kelas)</h2>
+                @if (! ($ml['ready'] ?? false))
+                    <p class="mt-2 text-sm text-slate-500">{{ $ml['reason'] ?? 'Tidak tersedia.' }}</p>
+                @else
+                    <p class="mt-1 text-xs text-slate-500">{{ $ml['n'] }} siswa dalam {{ $ml['classes'] }} kelas. Variabel hasil: gain (post − pre); pretest dipusatkan pada rerata {{ $num($ml['pre_mean'], 1) }}.</p>
+                    @foreach (['m1' => 'Model 1: pretest', 'm2' => 'Model 2: pretest + kelompok penelitian'] as $mk => $mt)
+                        @if ($ml[$mk])
+                            <h3 class="mt-4 text-sm font-black">{{ $mt }}</h3>
+                            <table class="mt-1 w-full text-left text-sm"><thead class="text-xs uppercase text-slate-500"><tr><th class="py-1">Efek tetap</th><th>b</th><th>SE</th><th>CI 95%</th><th>p</th></tr></thead><tbody>
+                                @foreach ($ml[$mk]['fixed'] as $f)<tr class="border-t border-slate-100"><td class="py-1">{{ $f['label'] }}</td><td>{{ $num($f['b'], 2) }}</td><td>{{ $num($f['se'], 2) }}</td><td>{{ $num($f['ci'][0], 2) }} s.d. {{ $num($f['ci'][1], 2) }}</td><td>{{ $f['p'] < 0.001 ? '<0,001' : $num($f['p'], 3) }}</td></tr>@endforeach
+                            </tbody></table>
+                            <p class="mt-1 text-xs text-slate-500">Varians antar-kelas {{ $num($ml[$mk]['sigma2_u'], 2) }} · varians sisa {{ $num($ml[$mk]['sigma2_e'], 2) }} · ICC {{ $num($ml[$mk]['icc'], 2) }} · uji varians kelas (LRT) {{ $num($ml[$mk]['lrt'], 2) }}, p {{ $ml[$mk]['lrt_p'] < 0.001 ? '<0,001' : $num($ml[$mk]['lrt_p'], 3) }}</p>
+                        @endif
+                    @endforeach
+                    @foreach ($ml['notes'] as $n)<p class="mt-2 text-xs text-slate-500">{{ $n }}</p>@endforeach
+                @endif
+            </div>
+
             <details class="{{ $card }}">
                 <summary class="cursor-pointer text-lg font-black">Definisi, rumus, dan keterbatasan</summary>
                 <div class="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-300">
