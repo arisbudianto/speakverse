@@ -8,7 +8,7 @@
         $ready = $report['ready'] ?? false;
         $tone = [
             'konsisten' => 'bg-green-500', 'sporadis' => 'bg-yellow-500', 'menumpuk' => 'bg-orange-500',
-            'menurun' => 'bg-red-400', 'berhenti' => 'bg-red-600', 'tidak_aktif' => 'bg-slate-400', 'baru' => 'bg-cyan-500',
+            'menurun' => 'bg-red-400', 'berhenti' => 'bg-red-600', 'tidak_aktif' => 'bg-slate-400', 'baru' => 'bg-cyan-500', 'hanya_tes' => 'bg-indigo-400',
         ];
         $badge = [
             'konsisten' => 'bg-green-500/10 text-green-600 dark:text-green-400',
@@ -18,6 +18,7 @@
             'berhenti' => 'bg-red-500/10 text-red-600',
             'tidak_aktif' => 'bg-slate-100 text-slate-500 dark:bg-white/5',
             'baru' => 'bg-cyan-500/10 text-cyan-600',
+            'hanya_tes' => 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
         ];
     @endphp
 
