@@ -10,6 +10,7 @@ use App\Models\ReadingMaterial;
 use App\Models\ReadingQuestion;
 use App\Models\UserLessonProgress;
 use App\Services\GamificationService;
+use App\Services\ProgressionService;
 use App\Services\Learning\AdaptationPolicy;
 use App\Services\Learning\CefrBandResolver;
 use App\Services\Learning\DiagnosticEngine;
@@ -29,8 +30,13 @@ class StudentReadingController extends Controller
      * Menampilkan satu reading passage.
      */
     public function reading(
-        Lesson $lesson
+        Lesson $lesson,
+        ProgressionService $progressionService
     ) {
+        if ($redirect = $progressionService->lockedRedirect(Auth::id(), $lesson->unit)) {
+            return $redirect;
+        }
+
         $material = ReadingMaterial::with([
             'questions' => function ($query) {
                 $query->orderBy('id');
@@ -66,8 +72,13 @@ class StudentReadingController extends Controller
      */
     public function quiz(
         Lesson $lesson,
-        InteractionLogger $interactionLogger
+        InteractionLogger $interactionLogger,
+        ProgressionService $progressionService
     ) {
+        if ($redirect = $progressionService->lockedRedirect(Auth::id(), $lesson->unit)) {
+            return $redirect;
+        }
+
         $material = ReadingMaterial::with([
             'questions' => function ($query) {
                 $query->orderBy('id');

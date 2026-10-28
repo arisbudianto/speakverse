@@ -9,6 +9,7 @@ use App\Models\UserLessonProgress;
 use App\Models\WritingMaterial;
 use App\Models\WritingSubmission;
 use App\Services\GamificationService;
+use App\Services\ProgressionService;
 use App\Services\Learning\FeedbackExplainer;
 use App\Services\Learning\PreTaskScaffoldService;
 use Illuminate\Http\JsonResponse;
@@ -24,8 +25,12 @@ class StudentWritingController extends Controller
     /**
      * Menampilkan materi Writing Unit 1–4.
      */
-    public function index(Lesson $lesson)
+    public function index(Lesson $lesson, ProgressionService $progressionService)
     {
+        if ($redirect = $progressionService->lockedRedirect(Auth::id(), $lesson->unit)) {
+            return $redirect;
+        }
+
         $material = WritingMaterial::with('questions')
             ->where('lesson_id', $lesson->id)
             ->first();
@@ -51,8 +56,12 @@ class StudentWritingController extends Controller
     /**
      * Menampilkan quiz Writing Unit 1–4.
      */
-    public function quiz(Lesson $lesson)
+    public function quiz(Lesson $lesson, ProgressionService $progressionService)
     {
+        if ($redirect = $progressionService->lockedRedirect(Auth::id(), $lesson->unit)) {
+            return $redirect;
+        }
+
         $material = WritingMaterial::with('questions')
             ->where('lesson_id', $lesson->id)
             ->first();
@@ -82,13 +91,24 @@ class StudentWritingController extends Controller
         Request $request,
         Lesson $lesson,
         WritingMaterial $material,
-        GamificationService $gamificationService
+        GamificationService $gamificationService,
+        ProgressionService $progressionService
     ): JsonResponse {
         abort_unless(
             (int) $material->lesson_id ===
             (int) $lesson->id,
             404
         );
+
+        if (! $progressionService->isUnitUnlocked(Auth::id(), $lesson->unit)) {
+            return response()->json(
+                [
+                    'message' =>
+                        'Selesaikan keempat keterampilan pada tahap sebelumnya terlebih dahulu sebelum mengerjakan tahap ini.',
+                ],
+                403
+            );
+        }
 
         $validated = $request->validate([
             'answer' => [

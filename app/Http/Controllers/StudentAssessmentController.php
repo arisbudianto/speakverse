@@ -14,6 +14,7 @@ use App\Models\Unit;
 use App\Models\UserLessonProgress;
 use App\Models\WritingQuestion;
 use App\Services\GamificationService;
+use App\Services\ProgressionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -33,7 +34,8 @@ class StudentAssessmentController extends Controller
      */
     public function show(
         string $type,
-        string $skill
+        string $skill,
+        ProgressionService $progressionService
     ) {
         $this->validateTypeAndSkill(
             $type,
@@ -50,6 +52,17 @@ class StudentAssessmentController extends Controller
             ->where('type', $type)
             ->where('status', 'active')
             ->firstOrFail();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pastikan tahap sebelumnya sudah tuntas (cegah akses langsung ke
+        | Post-Test, atau tahap mana pun, tanpa menuntaskan tahap sebelumnya)
+        |--------------------------------------------------------------------------
+        */
+
+        if ($redirect = $progressionService->lockedRedirect(Auth::id(), $unit)) {
+            return $redirect;
+        }
 
         /*
         |--------------------------------------------------------------------------
@@ -239,7 +252,8 @@ class StudentAssessmentController extends Controller
         Request $request,
         string $type,
         string $skill,
-        GamificationService $gamificationService
+        GamificationService $gamificationService,
+        ProgressionService $progressionService
     ) {
         $this->validateTypeAndSkill(
             $type,
@@ -277,6 +291,16 @@ class StudentAssessmentController extends Controller
             ->where('type', $type)
             ->where('status', 'active')
             ->firstOrFail();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pastikan tahap sebelumnya sudah tuntas
+        |--------------------------------------------------------------------------
+        */
+
+        if ($redirect = $progressionService->lockedRedirect(Auth::id(), $unit)) {
+            return $redirect;
+        }
 
         /*
         |--------------------------------------------------------------------------

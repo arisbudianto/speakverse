@@ -10,6 +10,7 @@ use App\Models\ListeningMaterial;
 use App\Models\ListeningQuestion;
 use App\Models\UserLessonProgress;
 use App\Services\GamificationService;
+use App\Services\ProgressionService;
 use App\Services\Learning\AdaptationPolicy;
 use App\Services\Learning\CefrBandResolver;
 use App\Services\Learning\DiagnosticEngine;
@@ -30,8 +31,12 @@ class StudentListeningController extends Controller
     /**
      * Menampilkan materi listening.
      */
-    public function listening(Lesson $lesson): View|RedirectResponse
+    public function listening(Lesson $lesson, ProgressionService $progressionService): View|RedirectResponse
     {
+        if ($redirect = $progressionService->lockedRedirect(Auth::id(), $lesson->unit)) {
+            return $redirect;
+        }
+
         $material = ListeningMaterial::with('questions')
             ->where('lesson_id', $lesson->id)
             ->first();
@@ -54,8 +59,12 @@ class StudentListeningController extends Controller
      * Modul 1: sesi kuis dibuka di sini (sebelumnya listening TIDAK
      * PERNAH memanggil InteractionLogger sama sekali).
      */
-    public function quiz(Lesson $lesson, InteractionLogger $interactionLogger): View|RedirectResponse
+    public function quiz(Lesson $lesson, InteractionLogger $interactionLogger, ProgressionService $progressionService): View|RedirectResponse
     {
+        if ($redirect = $progressionService->lockedRedirect(Auth::id(), $lesson->unit)) {
+            return $redirect;
+        }
+
         $material = ListeningMaterial::with([
             'questions' => function ($query) {
                 $query->orderBy('id');

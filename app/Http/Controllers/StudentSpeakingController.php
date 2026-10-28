@@ -11,6 +11,7 @@ use App\Models\Unit;
 use App\Models\User;
 use App\Models\UserLessonProgress;
 use App\Services\GamificationService;
+use App\Services\ProgressionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -38,6 +39,10 @@ class StudentSpeakingController extends Controller
     public function index(Lesson $lesson)
     {
         $this->ensureSpeakingLesson($lesson);
+
+        if ($redirect = app(ProgressionService::class)->lockedRedirect(Auth::id(), $lesson->unit)) {
+            return $redirect;
+        }
 
         /*
         |--------------------------------------------------------------------------
@@ -69,6 +74,10 @@ class StudentSpeakingController extends Controller
     public function quiz(Lesson $lesson)
     {
         $this->ensureSpeakingLesson($lesson);
+
+        if ($redirect = app(ProgressionService::class)->lockedRedirect(Auth::id(), $lesson->unit)) {
+            return $redirect;
+        }
 
         $material = SpeakingMaterial::query()
             ->where('lesson_id', $lesson->id)
@@ -140,6 +149,15 @@ class StudentSpeakingController extends Controller
             ->where('type', $type)
             ->where('status', 'active')
             ->firstOrFail();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pastikan tahap sebelumnya sudah tuntas
+        |--------------------------------------------------------------------------
+        */
+        if ($redirect = app(ProgressionService::class)->lockedRedirect(Auth::id(), $unit)) {
+            return $redirect;
+        }
 
         /*
         |--------------------------------------------------------------------------
@@ -265,6 +283,16 @@ class StudentSpeakingController extends Controller
         SpeakingMaterial $material
     ): JsonResponse {
         $this->ensureSpeakingLesson($lesson);
+
+        if (! app(ProgressionService::class)->isUnitUnlocked(Auth::id(), $lesson->unit)) {
+            return response()->json(
+                [
+                    'message' =>
+                        'Selesaikan keempat keterampilan pada tahap sebelumnya terlebih dahulu sebelum mengerjakan tahap ini.',
+                ],
+                403
+            );
+        }
 
         /*
         |--------------------------------------------------------------------------
@@ -752,6 +780,21 @@ class StudentSpeakingController extends Controller
             $lesson->unit->status === 'active',
             404
         );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pastikan tahap sebelumnya sudah tuntas
+        |--------------------------------------------------------------------------
+        */
+        if (! app(ProgressionService::class)->isUnitUnlocked(Auth::id(), $lesson->unit)) {
+            return response()->json(
+                [
+                    'message' =>
+                        'Selesaikan keempat keterampilan pada tahap sebelumnya terlebih dahulu sebelum mengerjakan tahap ini.',
+                ],
+                403
+            );
+        }
 
         /*
         |--------------------------------------------------------------------------
