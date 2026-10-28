@@ -208,6 +208,32 @@ document.documentElement.classList.toggle('dark', darkMode)"
                         <span>Analytics</span>
 
                     </a>
+
+                    <!-- HASIL BELAJAR SEMUA SEKOLAH -->
+                    <a href="{{ route('admin.school-results') }}"
+                        class="flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200 font-semibold
+                        {{ request()->routeIs('admin.school-results*')
+                            ? 'bg-cyan-500/10 text-cyan-400 shadow-lg shadow-cyan-500/5'
+                            : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300' }}">
+
+                        <span class="text-xl">🏫</span>
+
+                        <span>Hasil Sekolah</span>
+
+                    </a>
+
+                    <!-- LEARNING ANALYTICS: KETERLIBATAN -->
+                    <a href="{{ route('admin.la.engagement') }}"
+                        class="flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200 font-semibold
+                        {{ request()->routeIs('admin.la.*')
+                            ? 'bg-cyan-500/10 text-cyan-400 shadow-lg shadow-cyan-500/5'
+                            : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300' }}">
+
+                        <span class="text-xl">🧭</span>
+
+                        <span>Analitik Lanjutan</span>
+
+                    </a>
                     @endif
 
                 </nav>
@@ -284,6 +310,28 @@ document.documentElement.classList.toggle('dark', darkMode)"
 
                 <!-- RIGHT -->
                 <div class="flex items-center gap-3">
+
+                    <!-- SARAN PERBAIKAN MODUL 6 — NOTIFIKASI -->
+                    <a href="{{ route('staff.notifications.index') }}"
+                        class="relative w-12 h-12 rounded-2xl
+                        border border-slate-200 dark:border-white/10
+                        bg-white dark:bg-white/5
+                        hover:scale-105 transition-all duration-200
+                        flex items-center justify-center">
+
+                        🔔
+
+                        @php
+                            $unreadNotificationCount = auth()->user()?->unreadNotifications()->count() ?? 0;
+                        @endphp
+
+                        @if ($unreadNotificationCount > 0)
+                            <span class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center
+                                rounded-full bg-red-500 text-[10px] font-black text-white">
+                                {{ $unreadNotificationCount > 9 ? '9+' : $unreadNotificationCount }}
+                            </span>
+                        @endif
+                    </a>
 
                     <!-- DARK MODE -->
                     <button @click="darkMode = !darkMode"

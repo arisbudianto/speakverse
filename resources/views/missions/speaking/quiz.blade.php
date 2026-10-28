@@ -2225,6 +2225,37 @@
 
                 @csrf
 
+                {{-- Saran perbaikan Modul 5 (Speaking) — Bantuan Sebelum Merekam --}}
+                <div>
+                    <button
+                        type="button"
+                        id="preTaskHelpBtn"
+                        class="inline-flex items-center justify-center
+                        rounded-2xl border border-slate-200 dark:border-white/10
+                        bg-white dark:bg-white/5
+                        px-4 py-2 text-sm font-bold
+                        text-purple-600 dark:text-purple-400
+                        hover:bg-purple-50 dark:hover:bg-purple-500/10
+                        transition">
+                        💡 Bantuan sebelum merekam
+                    </button>
+                </div>
+
+                <div
+                    id="preTaskHelpPanel"
+                    hidden
+                    class="rounded-3xl border border-purple-200 dark:border-purple-500/20
+                    bg-purple-50 dark:bg-purple-500/10 p-5 sm:p-6">
+                    <p class="mb-1 text-xs font-black text-purple-700 dark:text-purple-400">Struktur yang disarankan</p>
+                    <p id="preTaskStructureTip" class="text-sm leading-7 text-slate-700 dark:text-slate-300"></p>
+
+                    <p class="mb-1 mt-3 text-xs font-black text-purple-700 dark:text-purple-400">Kosakata yang mungkin berguna</p>
+                    <ul id="preTaskVocabList" class="list-disc pl-5 text-sm leading-7 text-slate-700 dark:text-slate-300"></ul>
+
+                    <p class="mb-1 mt-3 text-xs font-black text-purple-700 dark:text-purple-400">Pengingat tata bahasa</p>
+                    <p id="preTaskGrammarTip" class="text-sm leading-7 text-slate-700 dark:text-slate-300"></p>
+                </div>
+
                 {{-- ========================================================
                     PAIR SETTINGS — UNIT 1–4 ONLY
                 ======================================================== --}}
@@ -3264,6 +3295,33 @@
                             -
                         </p>
                     </div>
+
+                    {{-- Saran perbaikan Modul 5 (Speaking) — Bantu Pahami Feedback --}}
+                    <div class="mt-3">
+                        <button
+                            type="button"
+                            id="explainFeedbackBtn"
+                            class="inline-flex items-center justify-center
+                            rounded-2xl border border-slate-200 dark:border-white/10
+                            bg-white dark:bg-white/5
+                            px-4 py-2 text-sm font-bold
+                            text-purple-600 dark:text-purple-400
+                            hover:bg-purple-50 dark:hover:bg-purple-500/10
+                            transition">
+                            💡 Bantu saya paham feedback ini
+                        </button>
+                    </div>
+
+                    <div
+                        id="explainFeedbackPanel"
+                        hidden
+                        class="mt-3 rounded-3xl border border-purple-200 dark:border-purple-500/20
+                        bg-purple-50 dark:bg-purple-500/10 p-5 sm:p-6">
+                        <p class="mb-1 text-xs font-black text-purple-700 dark:text-purple-400">Penjelasan sederhana</p>
+                        <p id="explainFeedbackText" class="text-sm leading-7 text-slate-700 dark:text-slate-300"></p>
+                        <p class="mb-1 mt-3 text-xs font-black text-purple-700 dark:text-purple-400">Saran untuk lain kali</p>
+                        <p id="explainFeedbackTip" class="text-sm leading-7 text-slate-700 dark:text-slate-300"></p>
+                    </div>
                 </div>
 
                 {{-- GRAMMAR ERRORS --}}
@@ -3469,6 +3527,64 @@
         let timerInterval = null;
         let recordedSeconds = 0;
         let audioPreviewUrl = null;
+        let currentSubmissionId = null;
+
+        // Saran perbaikan Modul 5 (Speaking) — Bantuan Sebelum Merekam.
+        // CATATAN: TIDAK dibungkus DOMContentLoaded — script ini
+        // ditempatkan di akhir <body>, jadi DOM sudah siap saat baris
+        // ini jalan (sama seperti deklarasi lain di atas). Membungkus
+        // dengan DOMContentLoaded di sini justru BERISIKO: event itu
+        // mungkin sudah lewat duluan, membuat listener tidak pernah
+        // terdaftar.
+        const preTaskHelpBtn = document.getElementById('preTaskHelpBtn');
+        if (preTaskHelpBtn) {
+            preTaskHelpBtn.addEventListener('click', async function () {
+                const tokenInput = document.querySelector('#speakingForm input[name="_token"]');
+                const csrfToken = tokenInput ? tokenInput.value : '';
+
+                preTaskHelpBtn.disabled = true;
+                preTaskHelpBtn.textContent = 'Memuat...';
+
+                try {
+                    const response = await fetch(
+                        @json(route('student.speaking.preTaskHelp', $lesson)),
+                        {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': csrfToken,
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
+                            }
+                        }
+                    );
+
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(result.message || 'Bantuan tidak tersedia saat ini.');
+                    }
+
+                    document.getElementById('preTaskStructureTip').textContent = result.structure_tip;
+
+                    const vocabList = document.getElementById('preTaskVocabList');
+                    vocabList.innerHTML = '';
+                    (result.vocabulary_suggestions || []).forEach(function (item) {
+                        const li = document.createElement('li');
+                        li.textContent = item;
+                        vocabList.appendChild(li);
+                    });
+
+                    document.getElementById('preTaskGrammarTip').textContent = result.grammar_tip;
+                    document.getElementById('preTaskHelpPanel').hidden = false;
+                } catch (error) {
+                    console.error('Pre-task help error:', error);
+                    alert(error.message || 'Bantuan tidak tersedia saat ini.');
+                } finally {
+                    preTaskHelpBtn.disabled = false;
+                    preTaskHelpBtn.textContent = '💡 Bantuan sebelum merekam';
+                }
+            });
+        }
 
         /*
         |--------------------------------------------------------------------------
@@ -4749,6 +4865,13 @@
                     result.feedback ??
                     '-';
 
+            // Saran perbaikan Modul 5 (Speaking) — Bantu Pahami Feedback.
+            currentSubmissionId = result.assessment_submission_id ?? null;
+            const explainPanelEl = document.getElementById('explainFeedbackPanel');
+            if (explainPanelEl) {
+                explainPanelEl.hidden = true;
+            }
+
             document
                 .getElementById(
                     'strengthsText'
@@ -4816,6 +4939,53 @@
 
                 behavior:
                     'smooth'
+            });
+        }
+
+        // Saran perbaikan Modul 5 (Speaking) — Bantu Pahami Feedback.
+        const explainFeedbackBtn = document.getElementById('explainFeedbackBtn');
+        if (explainFeedbackBtn) {
+            explainFeedbackBtn.addEventListener('click', async function () {
+                if (!currentSubmissionId) {
+                    return;
+                }
+
+                const tokenInput = speakingForm.querySelector('input[name="_token"]');
+                const csrfToken = tokenInput ? tokenInput.value : '';
+
+                explainFeedbackBtn.disabled = true;
+                explainFeedbackBtn.textContent = 'Memuat...';
+
+                try {
+                    const urlTemplate = @json(route('student.speaking.explainFeedback', [$lesson, '__SUBMISSION_ID__']));
+                    const response = await fetch(
+                        urlTemplate.replace('__SUBMISSION_ID__', currentSubmissionId),
+                        {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': csrfToken,
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
+                            }
+                        }
+                    );
+
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(result.message || 'Penjelasan tidak tersedia saat ini.');
+                    }
+
+                    document.getElementById('explainFeedbackText').textContent = result.simple_explanation;
+                    document.getElementById('explainFeedbackTip').textContent = result.tip_for_next_time;
+                    document.getElementById('explainFeedbackPanel').hidden = false;
+                } catch (error) {
+                    console.error('Explain feedback error:', error);
+                    alert(error.message || 'Penjelasan tidak tersedia saat ini.');
+                } finally {
+                    explainFeedbackBtn.disabled = false;
+                    explainFeedbackBtn.textContent = '💡 Bantu saya paham feedback ini';
+                }
             });
         }
 

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html
+<html translate="no"
     lang="{{ str_replace('_', '-', app()->getLocale()) }}"
     x-data="{
         darkMode: localStorage.getItem('darkMode') === 'true',
@@ -1112,6 +1112,8 @@
         }
     </style>
 
+    <meta name="google" content="notranslate">
+    @include('partials.anti-copy')
 </head>
 
 
@@ -3340,6 +3342,7 @@
         })();
     </script>
 
+    @include('partials.consent-modal')
 </body>
 
 </html>

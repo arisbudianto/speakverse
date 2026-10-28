@@ -166,7 +166,8 @@ class AdaptationPolicy
         int $questionId,
         ?int $lessonId,
         string $skill = 'reading',
-        ?array $teacherOverride = null
+        ?array $teacherOverride = null,
+        ?int $userId = null
     ): array {
         try {
             $attempts = LearningEvent::query()
@@ -195,7 +196,7 @@ class AdaptationPolicy
                 'response_ms' => $latestResponseMs,
                 'median_response_ms' => $medianResponseMs,
                 'revision_count' => $revisionCount,
-                'fading_active' => $this->isFadingActive($sessionId, $questionId),
+                'fading_active' => $this->isFadingActive($sessionId, $questionId, $skill, $userId),
             ], $teacherOverride);
         } catch (Throwable $exception) {
             Log::warning('AdaptationPolicy: resolveHintLevel() failed, falling back to level 0.', [
@@ -213,26 +214,66 @@ class AdaptationPolicy
     }
 
     /**
-     * Cek apakah N soal TERAKHIR yang dikerjakan (selain soal saat
-     * ini) dalam sesi ini semuanya dijawab benar TANPA hint sama
-     * sekali — kalau ya, fading aktif untuk soal saat ini.
+     * Saran perbaikan Modul 4 — fading LINTAS SESI.
+     *
+     * Sebelumnya method ini hanya melihat sesi kuis SAAT INI —
+     * siswa yang konsisten bagus hari ini, begitu login lagi besok
+     * (sesi baru), "kepercayaan" sistem terhadapnya reset ke nol.
+     * Sekarang, kalau $userId disediakan, dicari N soal TERAKHIR
+     * yang benar-benar dikerjakan (benar, tanpa hint) untuk
+     * user+skill ini di SELURUH RIWAYAT, bukan cuma sesi ini —
+     * lintas hari, lintas lesson, selama skill-nya sama (fading
+     * Reading tidak tercampur dengan fading Vocabulary).
+     *
+     * $userId null (mis. dipanggil dari kode lama yang belum
+     * di-update, atau dari skenario uji tanpa user sungguhan) tetap
+     * membuat method ini bekerja, cuma turun ke perilaku LAMA
+     * (hanya lihat sesi ini) — tidak pernah error.
      *
      * N = config('learning.adaptation.fading_streak').
      */
-    private function isFadingActive(string $sessionId, int $currentQuestionId): bool
+    private function isFadingActive(string $sessionId, int $currentQuestionId, string $skill = 'reading', ?int $userId = null): bool
     {
         $streakNeeded = config('learning.adaptation.fading_streak', 2);
+        $lookbackLimit = config('learning.adaptation.fading_lookback_limit', 200);
 
-        $recentQuestions = LearningEvent::query()
-            ->where('quiz_session_id', $sessionId)
-            ->where('question_id', '!=', $currentQuestionId)
-            ->whereIn('event_type', ['select', 'revise'])
+        $query = LearningEvent::query()
+            ->whereIn('event_type', ['select', 'revise']);
+
+        if ($userId !== null) {
+            // Lintas sesi: filter by user+skill, bukan quiz_session_id
+            // tunggal. Kecualikan HANYA kombinasi (sesi, soal) yang
+            // sedang berjalan sekarang — bukan seluruh question_id ini,
+            // supaya soal dengan ID yang sama dari sesi LAIN (mis.
+            // Vocabulary Pretest yang soalnya dari bank yang sama,
+            // bisa muncul lagi di sesi berbeda) tetap terhitung benar.
+            $query
+                ->where('user_id', $userId)
+                ->where('skill', $skill)
+                ->where(function ($q) use ($sessionId, $currentQuestionId) {
+                    $q->where('quiz_session_id', '!=', $sessionId)
+                        ->orWhere('question_id', '!=', $currentQuestionId);
+                });
+        } else {
+            // Fallback lama: cuma sesi ini (kalau pemanggil belum
+            // menyediakan userId).
+            $query
+                ->where('quiz_session_id', $sessionId)
+                ->where('question_id', '!=', $currentQuestionId);
+        }
+
+        $recentQuestions = $query
             ->orderByDesc('id')
+            ->limit($lookbackLimit)
             ->get()
-            ->groupBy('question_id')
-            // Ambil attempt TERAKHIR per soal (kalau ada revisi,
-            // yang menentukan benar/salah akhir adalah pilihan
-            // terakhir).
+            // Kunci pengelompokan HARUS gabungan sesi+soal, bukan soal
+            // saja — kalau tidak, dua percobaan soal dengan ID sama
+            // dari DUA SESI BERBEDA akan salah dianggap satu soal yang
+            // sama (lihat catatan Vocabulary Pretest di atas).
+            ->groupBy(fn ($event) => $event->quiz_session_id . ':' . $event->question_id)
+            // Ambil attempt TERAKHIR per (sesi, soal) — kalau ada
+            // revisi, yang menentukan benar/salah akhir adalah
+            // pilihan terakhir.
             ->map(fn ($group) => $group->sortByDesc('id')->first())
             ->sortByDesc(fn ($event) => $event->id)
             ->values()
@@ -248,7 +289,7 @@ class AdaptationPolicy
             }
 
             $hadHint = LearningEvent::query()
-                ->where('quiz_session_id', $sessionId)
+                ->where('quiz_session_id', $event->quiz_session_id)
                 ->where('question_id', $event->question_id)
                 ->where('event_type', 'hint_request')
                 ->exists();

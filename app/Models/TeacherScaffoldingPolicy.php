@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Modul 6 — Teacher HITL Override.
@@ -13,9 +14,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Dibaca oleh App\Services\Learning\TeacherOverrideService sebelum
  * Modul 4 (AdaptationPolicy) memutuskan level bantuan, dan sebelum
  * Modul 5 (check()) menegakkan aturan wajib-hint-dulu.
+ *
+ * Saran perbaikan — riwayat kebijakan yang dihapus: memakai
+ * SoftDeletes, jadi query NORMAL (termasuk yang dipakai
+ * TeacherOverrideService) OTOMATIS tidak melihat kebijakan yang
+ * sudah dihapus, tanpa perlu perubahan apa pun di service itu.
+ * Untuk melihat riwayatnya, pakai TeacherScaffoldingPolicy::onlyTrashed().
  */
 class TeacherScaffoldingPolicy extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'teacher_id',
         'scope_type',
@@ -31,6 +40,7 @@ class TeacherScaffoldingPolicy extends Model
         'disable_llm',
         'note',
         'expires_at',
+        'deleted_by',
     ];
 
     protected function casts(): array
@@ -42,6 +52,7 @@ class TeacherScaffoldingPolicy extends Model
             'require_hint_before_recheck' => 'boolean',
             'disable_llm' => 'boolean',
             'expires_at' => 'datetime',
+            'deleted_at' => 'datetime',
         ];
     }
 
@@ -53,6 +64,11 @@ class TeacherScaffoldingPolicy extends Model
     public function student(): BelongsTo
     {
         return $this->belongsTo(User::class, 'student_id');
+    }
+
+    public function deletedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
     }
 
     public function isExpired(): bool

@@ -456,9 +456,6 @@ class StudentReadingController extends Controller
 
         $feedback = $this->buildDynamicFeedback($quizSessionId, $material);
 
-        // Saran perbaikan Modul 5: halaman pembahasan setelah Finish.
-        $review = $this->buildReview($material->questions, $resolvedAnswers);
-
         return $this->saveReadingSubmission(
             $lesson,
             $material,
@@ -466,8 +463,7 @@ class StudentReadingController extends Controller
             $quizSessionId,
             $feedback,
             $interactionLogger,
-            $gamificationService,
-            $review
+            $gamificationService
         );
     }
 
@@ -713,7 +709,11 @@ class StudentReadingController extends Controller
             $question->id,
             $lesson->id,
             'reading',
-            $override['level_override'] ?? null
+            $override['level_override'] ?? null,
+            // Saran perbaikan Modul 4: userId dikirim supaya fading
+            // bisa melihat lintas sesi (hari lain, lesson lain),
+            // bukan cuma sesi ini.
+            Auth::id()
         );
         $level = $decision['level'];
 
@@ -1119,9 +1119,6 @@ class StudentReadingController extends Controller
                     ? "{$totalNeedsWork}/{$totalQuestions} soal masih perlu diperbaiki."
                     : 'Kuis selesai.';
             } else {
-                $dominantCode = $wrongFirstAttemptsByCode->sortDesc()->keys()->first();
-                $dominantCount = $wrongFirstAttemptsByCode[$dominantCode];
-
                 $labels = [
                     'lexical' => 'soal tentang arti kata (lexical)',
                     'inferential' => 'soal inferensial',
@@ -1136,10 +1133,25 @@ class StudentReadingController extends Controller
                     'context_misconception' => 'Coba fokus HANYA pada apa yang tertulis di teks, bukan pengetahuan umum yang kamu miliki.',
                 ];
 
-                $label = $labels[$dominantCode] ?? $dominantCode;
+                // Saran perbaikan Modul 5: sebutkan SEMUA jenis error
+                // yang ditemukan (diurutkan dari paling sering),
+                // bukan cuma satu yang paling dominan seperti
+                // sebelumnya — supaya siswa (dan guru lewat
+                // AssessmentSubmission->feedback) dapat gambaran utuh,
+                // bukan cuma potongan.
+                $sortedByCount = $wrongFirstAttemptsByCode->sortDesc();
+
+                $breakdownParts = [];
+                foreach ($sortedByCount as $code => $count) {
+                    $label = $labels[$code] ?? $code;
+                    $breakdownParts[] = "{$count}x {$label}";
+                }
+                $breakdown = implode(', ', $breakdownParts);
+
+                $dominantCode = $sortedByCount->keys()->first();
                 $strategy = $strategies[$dominantCode] ?? '';
 
-                $base = "{$dominantCount}/{$totalQuestions} {$label} masih lemah. {$strategy}";
+                $base = "{$totalNeedsWork}/{$totalQuestions} soal masih perlu diperbaiki ({$breakdown}). {$strategy}";
             }
         }
 

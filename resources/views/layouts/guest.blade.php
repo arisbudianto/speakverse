@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html
+<html translate="no"
     lang="{{ str_replace('_', '-', app()->getLocale()) }}"
     data-theme="dark"
 >
@@ -1218,6 +1218,7 @@
 
     </style>
 
+    <meta name="google" content="notranslate">
 </head>
 
 
