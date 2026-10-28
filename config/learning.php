@@ -17,6 +17,25 @@ return [
 
     'policy_version' => 'v1',
 
+    /*
+    |--------------------------------------------------------------------------
+    | Penguncian Urutan Tahap Belajar (Pre-Test -> Unit 1-4 -> Post-Test)
+    |--------------------------------------------------------------------------
+    |
+    | Lihat App\Services\ProgressionService. Pre-Test dan Unit 1-4 SELALU
+    | mengikuti urutan (tahap berikutnya baru terbuka setelah keempat
+    | keterampilan tahap sebelumnya tuntas).
+    |
+    | Post-Test dikecualikan SEMENTARA sejak 28 Okt 2026 atas permintaan
+    | admin: dibuka untuk semua siswa tanpa syarat, supaya rendahnya
+    | tingkat penyelesaian modul tidak menghalangi siswa mengerjakan
+    | Post-Test. Set true (lewat .env: LEARNING_POSTTEST_REQUIRES_PREVIOUS_STAGE=true)
+    | kapan pun ingin mengunci Post-Test kembali — tidak perlu ubah kode.
+    */
+    'progression' => [
+        'posttest_requires_previous_stage' => env('LEARNING_POSTTEST_REQUIRES_PREVIOUS_STAGE', false),
+    ],
+
     'adaptation' => [
 
         // response_ms dianggap "jauh di atas median soal" kalau lebih

@@ -85,6 +85,19 @@ class ProgressionService
      */
     public function isUnitUnlocked(int $userId, Unit $unit): bool
     {
+        // SEMENTARA (atas permintaan admin, 28 Okt 2026): Post-Test dibuka
+        // untuk semua siswa tanpa syarat menuntaskan Unit 1-4 lebih dulu,
+        // supaya partisipasi Post-Test tidak tersumbat oleh rendahnya
+        // tingkat penyelesaian modul. Pre-Test dan Unit 1-4 TETAP mengikuti
+        // urutan belajar seperti biasa. Untuk mengunci Post-Test kembali,
+        // set LEARNING_POSTTEST_REQUIRES_PREVIOUS_STAGE=true di .env (atau
+        // hapus baris config terkait) lalu php artisan config:clear — tidak
+        // perlu mengubah kode ini lagi.
+        if ($unit->type === 'posttest'
+            && ! config('learning.progression.posttest_requires_previous_stage', false)) {
+            return true;
+        }
+
         $units = $this->orderedUnits();
 
         $index = $units->search(
@@ -129,16 +142,8 @@ class ProgressionService
 
         $unlockMap = [];
 
-        foreach ($units as $index => $unit) {
-            if ($index === 0) {
-                $unlockMap[$unit->id] = true;
-
-                continue;
-            }
-
-            $previousUnit = $units[$index - 1];
-
-            $unlockMap[$unit->id] = $completedMap[$previousUnit->id]['is_completed'] ?? false;
+        foreach ($units as $unit) {
+            $unlockMap[$unit->id] = $this->isUnitUnlocked($userId, $unit);
         }
 
         $completedTotal = collect($completedMap)
