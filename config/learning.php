@@ -34,6 +34,23 @@ return [
     */
     'progression' => [
         'posttest_requires_previous_stage' => env('LEARNING_POSTTEST_REQUIRES_PREVIOUS_STAGE', false),
+
+        /*
+        | Uji coba "writing-only" (13 Nov 2026, SMK N 6 Surakarta): siswa
+        | dari sekolah yang terdaftar di sini hanya perlu menuntaskan
+        | skill Writing (bukan keempat skill) di Pre-Test, Unit 1-4, dan
+        | Post-Test. Listening/Reading/Speaking disembunyikan total dari
+        | peta misi mereka — lihat ProgressionService::requiredSkills().
+        |
+        | Cocok dicek case-insensitive & di-trim terhadap kolom
+        | users.school. Tambah/kurangi sekolah di sini, atau override
+        | lewat .env (pisahkan dengan koma):
+        | LEARNING_WRITING_ONLY_SCHOOLS="SMK N 6 Surakarta,Sekolah Lain"
+        */
+        'writing_only_schools' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', env('LEARNING_WRITING_ONLY_SCHOOLS', 'SMK N 6 Surakarta'))
+        ))),
     ],
 
     'adaptation' => [

@@ -25,7 +25,7 @@ class MissionController extends Controller
 
         return view('missions.index', [
             'units' => $units,
-            'skills' => ProgressionService::SKILLS,
+            'skills' => $progressionService->requiredSkills($userId),
             'completedMap' => $map['completedMap'],
             'unlockMap' => $map['unlockMap'],
             'completedTotal' => $map['completedTotal'],

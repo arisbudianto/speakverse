@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AssessmentSubmission;
 use App\Models\Unit;
+use App\Models\User;
 use App\Models\UserLessonProgress;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
@@ -46,6 +47,37 @@ class ProgressionService
     }
 
     /**
+     * Skill yang WAJIB dituntaskan siswa ini di tiap tahap (Pre-Test, Unit,
+     * Post-Test) agar tahap berikutnya terbuka.
+     *
+     * Default: keempat skill (self::SKILLS), sama untuk semua sekolah.
+     *
+     * Pengecualian "writing-only" (lihat config/learning.php,
+     * progression.writing_only_schools): siswa dari sekolah yang terdaftar
+     * di sana hanya perlu menuntaskan Writing — dipakai untuk uji coba
+     * terbatas di sekolah tertentu tanpa mengubah alur sekolah lain.
+     */
+    public function requiredSkills(int $userId): array
+    {
+        $school = User::whereKey($userId)->value('school');
+
+        if (! $school) {
+            return self::SKILLS;
+        }
+
+        $writingOnlySchools = array_map(
+            fn (string $name) => mb_strtolower(trim($name)),
+            config('learning.progression.writing_only_schools', [])
+        );
+
+        if (in_array(mb_strtolower(trim($school)), $writingOnlySchools, true)) {
+            return ['writing'];
+        }
+
+        return self::SKILLS;
+    }
+
+    /**
      * Daftar keterampilan yang sudah diselesaikan siswa pada satu tahap.
      */
     public function completedSkills(int $userId, Unit $unit): array
@@ -72,11 +104,15 @@ class ProgressionService
     }
 
     /**
-     * Apakah siswa sudah menuntaskan keempat keterampilan pada satu tahap.
+     * Apakah siswa sudah menuntaskan seluruh skill yang WAJIB baginya
+     * (lihat requiredSkills()) pada satu tahap.
      */
     public function isUnitCompleted(int $userId, Unit $unit): bool
     {
-        return count($this->completedSkills($userId, $unit)) >= count(self::SKILLS);
+        $required = $this->requiredSkills($userId);
+        $completed = $this->completedSkills($userId, $unit);
+
+        return empty(array_diff($required, $completed));
     }
 
     /**
@@ -128,15 +164,22 @@ class ProgressionService
     {
         $units = $this->orderedUnits();
 
+        $required = $this->requiredSkills($userId);
+
         $completedMap = [];
 
         foreach ($units as $unit) {
             $completedSkills = $this->completedSkills($userId, $unit);
 
+            // Hanya hitung skill yang memang wajib bagi siswa ini, supaya
+            // siswa writing-only (requiredSkills() = ['writing']) tidak
+            // salah tampil >100% progress kalau ada sisa data skill lain.
+            $relevantCompleted = array_values(array_intersect($required, $completedSkills));
+
             $completedMap[$unit->id] = [
-                'completed_skills' => $completedSkills,
-                'completed_count' => count($completedSkills),
-                'is_completed' => count($completedSkills) >= count(self::SKILLS),
+                'completed_skills' => $relevantCompleted,
+                'completed_count' => count($relevantCompleted),
+                'is_completed' => empty(array_diff($required, $completedSkills)),
             ];
         }
 
@@ -187,11 +230,17 @@ class ProgressionService
             default => 'tahap ini',
         };
 
+        $skillLabels = collect($this->requiredSkills($userId))
+            ->map(fn (string $skill) => ucfirst($skill))
+            ->implode(', ');
+
+        $skillWord = count($this->requiredSkills($userId)) > 1 ? 'keterampilan' : 'skill';
+
         return redirect()
             ->route('missions')
             ->with(
                 'error',
-                "Selesaikan keempat keterampilan (Listening, Reading, Writing, Speaking) pada tahap sebelumnya terlebih dahulu sebelum membuka \"{$label}\"."
+                "Selesaikan {$skillWord} {$skillLabels} pada tahap sebelumnya terlebih dahulu sebelum membuka \"{$label}\"."
             );
     }
 }
