@@ -370,6 +370,10 @@
                                                 $skillCompleted = in_array($skill, $completedSkills);
                                                 $href = missionSkillRoute($unit, $skill);
                                                 $hasRoute = $href !== '#';
+                                                $isPendingSpeakingGrade =
+                                                    $skill === 'speaking' &&
+                                                    !$skillCompleted &&
+                                                    in_array($unit->id, $pendingSpeakingUnitIds ?? []);
                                             @endphp
 
                                             @if ($isUnlocked && $hasRoute)
@@ -404,6 +408,12 @@
                                                                 class="px-3 py-1 rounded-full text-xs font-black
                                                                 bg-green-500/10 text-green-500">
                                                                 Completed
+                                                            </span>
+                                                        @elseif ($isPendingSpeakingGrade)
+                                                            <span
+                                                                class="px-3 py-1 rounded-full text-xs font-black
+                                                                bg-amber-500/10 text-amber-500">
+                                                                Menunggu Penilaian
                                                             </span>
                                                         @else
                                                             <span

@@ -15,6 +15,11 @@ use Illuminate\Support\Facades\DB;
 
 class GamificationService
 {
+    public function __construct(
+        private ProgressionService $progressionService
+    ) {
+    }
+
     /**
      * Setiap 500 XP naik satu level.
      */
@@ -1452,12 +1457,23 @@ class GamificationService
     }
 
     /**
-     * Cek apakah seluruh skill pada Unit sudah selesai.
+     * Cek apakah seluruh skill yang diwajibkan untuk user ini
+     * pada Unit sudah selesai.
+     *
+     * Memakai ProgressionService::requiredSkills() (bukan
+     * self::SKILLS yang statis) supaya kohor writing-only
+     * (misal SMK N 6 Surakarta) memicu bonus "Unit completed"
+     * setelah menuntaskan Writing saja, bukan menunggu 4 skill
+     * yang untuk mereka memang tidak pernah dibuka.
      */
     private function isUnitCompleted(
         int $userId,
         int $unitId
     ): bool {
+        $requiredSkills =
+            $this->progressionService
+                ->requiredSkills($userId);
+
         $completedSkills =
             UserLessonProgress::query()
                 ->where(
@@ -1490,7 +1506,7 @@ class GamificationService
                 ->unique();
 
         return collect(
-            self::SKILLS
+            $requiredSkills
         )->every(
             fn ($skill) =>
                 $completedSkills
@@ -1708,12 +1724,17 @@ class GamificationService
     }
 
     /**
-     * Cek apakah user sudah menyelesaikan
-     * seluruh Pre-Test.
+     * Cek apakah user sudah menyelesaikan seluruh skill
+     * yang diwajibkan untuknya pada Pre-Test (lihat catatan
+     * di isUnitCompleted() soal requiredSkills()).
      */
     private function hasCompletedPretest(
         int $userId
     ): bool {
+        $requiredSkills =
+            $this->progressionService
+                ->requiredSkills($userId);
+
         $skills =
             AssessmentSubmission::query()
                 ->where(
@@ -1750,7 +1771,7 @@ class GamificationService
                 ->unique();
 
         return collect(
-            self::SKILLS
+            $requiredSkills
         )->every(
             fn ($skill) =>
                 $skills->contains(
