@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SpeakingSubmission;
 use App\Models\Unit;
 use App\Services\ProgressionService;
 use Illuminate\Support\Facades\Auth;
@@ -23,6 +24,28 @@ class MissionController extends Controller
             ->orderBy('order_number')
             ->get();
 
+        // Rekaman yang sudah dikirim, tetapi nilainya masih menunggu penilaian.
+        // Dibawa dari hotfix produksi 29 Okt 2026 (belum ada di git sebelum
+        // sekarang); belum dipakai oleh missions/index.blade.php, jadi belum
+        // terlihat di UI, tapi dipertahankan di sini bukan dibuang.
+        $speakingLessons = $units->flatMap(fn ($unit) => $unit->lessons
+            ->where('skill_type', 'speaking')->pluck('id'));
+        $pendingLessonIds = SpeakingSubmission::query()
+            ->where('user_id', $userId)
+            ->whereNull('total_score')
+            ->whereNotNull('transcript')
+            ->whereHas('material', fn ($query) => $query->whereIn('lesson_id', $speakingLessons))
+            ->with('material')
+            ->get()
+            ->pluck('material.lesson_id')
+            ->filter()
+            ->all();
+        $pendingSpeakingUnitIds = $units
+            ->filter(fn ($unit) => $unit->lessons
+                ->where('skill_type', 'speaking')
+                ->pluck('id')->intersect($pendingLessonIds)->isNotEmpty())
+            ->pluck('id')->all();
+
         return view('missions.index', [
             'units' => $units,
             'skills' => $progressionService->requiredSkills($userId),
@@ -31,6 +54,7 @@ class MissionController extends Controller
             'completedTotal' => $map['completedTotal'],
             'totalStages' => $map['totalStages'],
             'overallProgress' => $map['overallProgress'],
+            'pendingSpeakingUnitIds' => $pendingSpeakingUnitIds,
         ]);
     }
 }
