@@ -73,6 +73,7 @@ Route::middleware([
     'auth',
     'verified',
     'force_password_change',
+    'ensure_profile_complete',
 ])->group(function () {
 
     /*

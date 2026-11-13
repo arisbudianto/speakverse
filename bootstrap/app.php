@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'staff' => \App\Http\Middleware\StaffMiddleware::class,
             'force_password_change' => \App\Http\Middleware\ForcePasswordChange::class,
+            'ensure_profile_complete' => \App\Http\Middleware\EnsureProfileComplete::class,
         ]);
 
     })
