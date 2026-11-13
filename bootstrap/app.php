@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'staff' => \App\Http\Middleware\StaffMiddleware::class,
             'force_password_change' => \App\Http\Middleware\ForcePasswordChange::class,
+            'require_complete_student_profile' => \App\Http\Middleware\RequireCompleteStudentProfile::class,
         ]);
 
     })

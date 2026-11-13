@@ -82,6 +82,7 @@ Route::middleware([
     'auth',
     'verified',
     'force_password_change',
+    'require_complete_student_profile',
 ])->group(function () {
 
     /*
