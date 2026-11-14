@@ -8,11 +8,26 @@ use Illuminate\Console\Command;
 
 class DumpWritingAssessmentData extends Command
 {
-    protected $signature = 'qa:dump-writing-assessment-data';
-    protected $description = 'Dump lesson_id dan isi WritingQuestion untuk pretest & posttest (diagnosa restrukturisasi tier)';
+    protected $signature = 'qa:dump-writing-assessment-data {--full= : question_id untuk tampilkan teks lengkap}';
+    protected $description = 'Dump ringkas lesson_id/question_id pretest & posttest writing (diagnosa restrukturisasi tier)';
 
     public function handle(): int
     {
+        if ($fullId = $this->option('full')) {
+            $q = WritingQuestion::find((int) $fullId);
+
+            if (!$q) {
+                $this->line("question_id {$fullId} not found");
+                return self::SUCCESS;
+            }
+
+            $this->line("ID={$q->id} LESSON={$q->lesson_id}");
+            $this->line('Q: ' . $q->question);
+            $this->line('SAMPLE: ' . (string) $q->sample_answer);
+
+            return self::SUCCESS;
+        }
+
         $lessons = Lesson::query()
             ->where('skill_type', 'writing')
             ->get();
@@ -20,24 +35,18 @@ class DumpWritingAssessmentData extends Command
         foreach ($lessons as $lesson) {
             $unit = $lesson->unit;
 
-            $this->line('---');
-            $this->line("lesson_id={$lesson->id} unit_id={$lesson->unit_id} unit_type=" . ($unit->type ?? 'null') . " unit_title=" . ($unit->title ?? '-'));
-
             $questions = WritingQuestion::query()
                 ->where('lesson_id', $lesson->id)
                 ->whereNull('writing_material_id')
                 ->get();
 
-            if ($questions->isEmpty()) {
-                $this->line('  (no pretest/posttest-style questions here)');
-                continue;
-            }
+            $ids = $questions->pluck('id')->implode(',');
 
-            foreach ($questions as $q) {
-                $this->line("  question_id={$q->id}");
-                $this->line('  question=' . str_replace("\n", ' | ', $q->question));
-                $this->line('  sample_answer=' . str_replace("\n", ' | ', (string) $q->sample_answer));
-            }
+            $this->line(
+                "L{$lesson->id} U{$lesson->unit_id} type=" . ($unit->type ?? '-')
+                . ' title=' . ($unit->title ?? '-')
+                . " qcount={$questions->count()} qids=[{$ids}]"
+            );
         }
 
         return self::SUCCESS;
