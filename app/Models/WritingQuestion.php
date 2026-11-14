@@ -15,6 +15,14 @@ class WritingQuestion extends Model
         'question',
         'image',
         'sample_answer',
+        'tier',
+        'grading_type',
+        'correct_answer',
+        'options',
+    ];
+
+    protected $casts = [
+        'options' => 'array',
     ];
 
     public function material()

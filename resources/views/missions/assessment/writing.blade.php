@@ -734,6 +734,84 @@
             margin-top: 7px;
         }
 
+        .writing-page .writing-text-input {
+            display: block;
+            width: 100%;
+            padding: 14px 15px;
+            border: 1px solid var(--border-strong);
+            border-radius: 15px;
+            background: var(--card-soft);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.7;
+            outline: none;
+            transition:
+                border-color 160ms ease,
+                box-shadow 160ms ease,
+                background-color 160ms ease;
+        }
+
+        .writing-page .writing-text-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .writing-page .writing-text-input:focus {
+            border-color: var(--accent);
+            background: var(--card);
+            box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.12);
+        }
+
+        .writing-page .writing-text-input.is-error {
+            border-color: var(--danger);
+            box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger) 12%, transparent);
+        }
+
+        .writing-page .writing-choice-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .writing-page .writing-choice-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 15px;
+            border: 1px solid var(--border-strong);
+            border-radius: 15px;
+            background: var(--card-soft);
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 650;
+            cursor: pointer;
+            transition:
+                border-color 160ms ease,
+                box-shadow 160ms ease,
+                background-color 160ms ease;
+        }
+
+        .writing-page .writing-choice-option:hover {
+            border-color: var(--accent);
+        }
+
+        .writing-page .writing-choice-option input[type="radio"] {
+            width: 17px;
+            height: 17px;
+            accent-color: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .writing-page .writing-choice-option:has(input:checked) {
+            border-color: var(--accent);
+            background: var(--card);
+            box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.12);
+        }
+
+        .writing-page .writing-choice-list.is-error .writing-choice-option {
+            border-color: var(--danger);
+        }
+
         .writing-page .writing-answer-help {
             color: var(--text-muted);
             font-size: 11px;
@@ -1335,9 +1413,18 @@
                             </section>
 
                             @foreach ($questions as $index => $question)
+                                @php
+                                    $stepType = match ($question->grading_type) {
+                                        'multiple_choice' => 'radio',
+                                        'exact_match' => 'text',
+                                        default => 'textarea',
+                                    };
+                                @endphp
+
                                 <article
                                     data-writing-step
                                     data-step-index="{{ $index }}"
+                                    data-step-type="{{ $stepType }}"
                                     @if ($index !== 0) hidden @endif
                                     class="writing-card writing-question-card">
                                     <div class="writing-question-head">
@@ -1347,7 +1434,13 @@
 
                                         <div class="writing-question-copy">
                                             <p class="writing-question-label">
-                                                Writing Question
+                                                @if ($question->tier === 'easy')
+                                                    Warm-up Question
+                                                @elseif ($question->tier === 'medium')
+                                                    Checkpoint Question
+                                                @else
+                                                    Writing Question
+                                                @endif
                                             </p>
 
                                             <h2 class="writing-question-text">
@@ -1371,38 +1464,84 @@
                                     @endif
 
                                     <div class="writing-answer-field">
-                                        <div class="writing-answer-field-head">
-                                            <label
-                                                for="answer-{{ $question->id }}"
-                                                class="writing-answer-field-label">
-                                                Your Writing Answer
-                                            </label>
+                                        @if ($stepType === 'radio')
+                                            <div class="writing-answer-field-head">
+                                                <label class="writing-answer-field-label">
+                                                    Your Answer
+                                                </label>
+                                            </div>
 
-                                            <span
-                                                data-word-count
-                                                class="writing-word-count">
-                                                0 words
-                                            </span>
-                                        </div>
+                                            <div class="writing-choice-list">
+                                                @foreach (($question->options ?? []) as $option)
+                                                    <label class="writing-choice-option">
+                                                        <input
+                                                            type="radio"
+                                                            name="answers[{{ $question->id }}]"
+                                                            value="{{ $option }}"
+                                                            data-answer-input
+                                                            {{ old('answers.' . $question->id) === $option ? 'checked' : '' }}>
+                                                        <span>{{ $option }}</span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                        @elseif ($stepType === 'text')
+                                            <div class="writing-answer-field-head">
+                                                <label
+                                                    for="answer-{{ $question->id }}"
+                                                    class="writing-answer-field-label">
+                                                    Your Answer
+                                                </label>
+                                            </div>
 
-                                        <textarea
-                                            id="answer-{{ $question->id }}"
-                                            name="answers[{{ $question->id }}]"
-                                            rows="8"
-                                            data-answer-input
-                                            placeholder="Write your answer here..."
-                                            class="writing-textarea">{{ old('answers.' . $question->id) }}</textarea>
+                                            <input
+                                                type="text"
+                                                id="answer-{{ $question->id }}"
+                                                name="answers[{{ $question->id }}]"
+                                                data-answer-input
+                                                autocomplete="off"
+                                                placeholder="Type your answer here..."
+                                                value="{{ old('answers.' . $question->id) }}"
+                                                class="writing-text-input">
+                                        @else
+                                            <div class="writing-answer-field-head">
+                                                <label
+                                                    for="answer-{{ $question->id }}"
+                                                    class="writing-answer-field-label">
+                                                    Your Writing Answer
+                                                </label>
+
+                                                <span
+                                                    data-word-count
+                                                    class="writing-word-count">
+                                                    0 words
+                                                </span>
+                                            </div>
+
+                                            <textarea
+                                                id="answer-{{ $question->id }}"
+                                                name="answers[{{ $question->id }}]"
+                                                rows="8"
+                                                data-answer-input
+                                                placeholder="Write your answer here..."
+                                                class="writing-textarea">{{ old('answers.' . $question->id) }}</textarea>
+                                        @endif
 
                                         <div class="writing-answer-help-row">
                                             <span class="writing-answer-help">
-                                                Write a complete and clear response in English.
+                                                @if ($stepType === 'radio')
+                                                    Choose the one answer that fits best.
+                                                @elseif ($stepType === 'text')
+                                                    Type your answer exactly as asked in the question.
+                                                @else
+                                                    Write a complete and clear response in English.
+                                                @endif
                                             </span>
 
                                             <span
                                                 data-answer-error
                                                 class="writing-answer-error"
                                                 hidden>
-                                                Please write your answer before continuing.
+                                                Please answer this question before continuing.
                                             </span>
                                         </div>
                                     </div>
@@ -1622,7 +1761,39 @@
                             .length;
                     }
 
+                    function getStepType(step) {
+                        return step.dataset.stepType || 'textarea';
+                    }
+
+                    function isStepAnswered(step) {
+                        if (getStepType(step) === 'radio') {
+                            return !!step.querySelector(
+                                '[data-answer-input]:checked'
+                            );
+                        }
+
+                        const input = step.querySelector(
+                            '[data-answer-input]'
+                        );
+
+                        return !!input && input.value.trim() !== '';
+                    }
+
+                    function getStepErrorTarget(step) {
+                        if (getStepType(step) === 'radio') {
+                            return step.querySelector(
+                                '.writing-choice-list'
+                            );
+                        }
+
+                        return step.querySelector('[data-answer-input]');
+                    }
+
                     function updateWordCounter(step) {
+                        if (getStepType(step) !== 'textarea') {
+                            return;
+                        }
+
                         const textarea = step.querySelector(
                             '[data-answer-input]'
                         );
@@ -1643,16 +1814,14 @@
                     }
 
                     function clearStepError(step) {
-                        const textarea = step.querySelector(
-                            '[data-answer-input]'
-                        );
+                        const target = getStepErrorTarget(step);
 
                         const error = step.querySelector(
                             '[data-answer-error]'
                         );
 
-                        if (textarea) {
-                            textarea.classList.remove('is-error');
+                        if (target) {
+                            target.classList.remove('is-error');
                         }
 
                         if (error) {
@@ -1661,17 +1830,21 @@
                     }
 
                     function showStepError(step) {
-                        const textarea = step.querySelector(
-                            '[data-answer-input]'
-                        );
+                        const target = getStepErrorTarget(step);
 
                         const error = step.querySelector(
                             '[data-answer-error]'
                         );
 
-                        if (textarea) {
-                            textarea.classList.add('is-error');
-                            textarea.focus();
+                        if (target) {
+                            target.classList.add('is-error');
+
+                            if (
+                                getStepType(step) !== 'radio' &&
+                                typeof target.focus === 'function'
+                            ) {
+                                target.focus();
+                            }
                         }
 
                         if (error) {
@@ -1686,11 +1859,7 @@
                             return false;
                         }
 
-                        const textarea = step.querySelector(
-                            '[data-answer-input]'
-                        );
-
-                        if (!textarea || textarea.value.trim() === '') {
+                        if (!isStepAnswered(step)) {
                             showStepError(step);
                             return false;
                         }
@@ -1749,20 +1918,39 @@
                     }
 
                     steps.forEach(function (step) {
-                        const textarea = step.querySelector(
+                        if (getStepType(step) === 'radio') {
+                            const radios = step.querySelectorAll(
+                                '[data-answer-input]'
+                            );
+
+                            radios.forEach(function (radio) {
+                                radio.addEventListener(
+                                    'change',
+                                    function () {
+                                        if (isStepAnswered(step)) {
+                                            clearStepError(step);
+                                        }
+                                    }
+                                );
+                            });
+
+                            return;
+                        }
+
+                        const input = step.querySelector(
                             '[data-answer-input]'
                         );
 
-                        if (!textarea) {
+                        if (!input) {
                             return;
                         }
 
                         updateWordCounter(step);
 
-                        textarea.addEventListener('input', function () {
+                        input.addEventListener('input', function () {
                             updateWordCounter(step);
 
-                            if (textarea.value.trim() !== '') {
+                            if (input.value.trim() !== '') {
                                 clearStepError(step);
                             }
                         });
@@ -1794,12 +1982,7 @@
 
                         const firstInvalidStep = steps.findIndex(
                             function (step) {
-                                const textarea = step.querySelector(
-                                    '[data-answer-input]'
-                                );
-
-                                return !textarea ||
-                                    textarea.value.trim() === '';
+                                return !isStepAnswered(step);
                             }
                         );
 
@@ -1822,12 +2005,7 @@
 
                     const firstIncompleteStep = steps.findIndex(
                         function (step) {
-                            const textarea = step.querySelector(
-                                '[data-answer-input]'
-                            );
-
-                            return !textarea ||
-                                textarea.value.trim() === '';
+                            return !isStepAnswered(step);
                         }
                     );
 

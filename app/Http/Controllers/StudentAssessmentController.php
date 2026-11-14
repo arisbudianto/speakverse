@@ -603,7 +603,7 @@ class StudentAssessmentController extends Controller
     private function getWritingQuestions(
         int $lessonId
     ) {
-        return WritingQuestion::query()
+        $questions = WritingQuestion::query()
             ->where(
                 'lesson_id',
                 $lessonId
@@ -613,6 +613,28 @@ class StudentAssessmentController extends Controller
             )
             ->orderBy('id')
             ->get();
+
+        /*
+         * Urutan pengerjaan: easy -> medium -> advanced (warming-up
+         * sebelum task lanjutan outline+develop, masukan Anggertha
+         * PTIK 23). Ini HANYA urutan tampilan; tidak mengubah bobot
+         * final_score (tetap rata-rata semua pertanyaan di lesson yang
+         * sama, lihat submitWritingAssessment()).
+         */
+        $tierOrder = [
+            'easy' => 0,
+            'medium' => 1,
+            'advanced' => 2,
+        ];
+
+        return $questions
+            ->sortBy(function ($question) use ($tierOrder) {
+                return [
+                    $tierOrder[$question->tier] ?? 2,
+                    $question->id,
+                ];
+            })
+            ->values();
     }
 
     /*
@@ -1047,6 +1069,91 @@ class StudentAssessmentController extends Controller
                                 ''
                             )
                         );
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Warming-up tier (easy/medium): dinilai rule-based,
+                    | TIDAK lewat AI rubric naratif. Rubric Orientation/
+                    | Complication/Resolution/Organization/Mechanics itu
+                    | didesain untuk teks utuh, bukan untuk "susun kata jadi
+                    | kalimat" atau "susun kalimat jadi paragraf" - memaksa
+                    | rubric itu ke jawaban satu-kalimat akan menghasilkan
+                    | skor yang tidak representatif.
+                    |
+                    | (Masukan Anggertha PTIK 23: soal easy->hard sebelum
+                    | task outline+develop lanjutan.)
+                    */
+                    if ($question->grading_type !== 'ai_rubric') {
+                        $ruleResult =
+                            $this->scoreWritingRuleBased(
+                                $question,
+                                $studentAnswer
+                            );
+
+                        $score = $ruleResult['score'];
+
+                        $totalScore += $score;
+                        $totalMaxScore += 100;
+
+                        $feedback = $ruleResult['feedback'];
+
+                        $combinedFeedback[] =
+                            'Question '
+                            .
+                            $question->id
+                            .
+                            ': '
+                            .
+                            $feedback;
+
+                        AssessmentAnswer::create([
+                            'assessment_submission_id' =>
+                                $submission->id,
+
+                            'question_type' =>
+                                'writing',
+
+                            'question_id' =>
+                                $question->id,
+
+                            'answer' =>
+                                $studentAnswer,
+
+                            'orientation_score' =>
+                                null,
+
+                            'complication_score' =>
+                                null,
+
+                            'resolution_score' =>
+                                null,
+
+                            'organization_score' =>
+                                null,
+
+                            'mechanics_score' =>
+                                null,
+
+                            'selected_option' =>
+                                $question->grading_type === 'multiple_choice'
+                                    ? $studentAnswer
+                                    : null,
+
+                            'is_correct' =>
+                                $ruleResult['is_correct'],
+
+                            'score' =>
+                                $score,
+
+                            'max_score' =>
+                                100,
+
+                            'feedback' =>
+                                $feedback,
+                        ]);
+
+                        continue;
+                    }
 
                     $aiResult =
                         $this->scoreWritingWithAi(
@@ -1863,5 +1970,177 @@ PROMPT;
                 (int) $score
             )
         );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | TIER EASY/MEDIUM (rule-based, bukan AI)
+    |--------------------------------------------------------------------------
+    |
+    | Dipakai untuk soal warming-up sebelum task outline+develop lanjutan
+    | (masukan Anggertha PTIK 23): susun kata jadi kalimat, susun kalimat
+    | jadi paragraf, dan identifikasi jenis teks. Jawabannya tertutup
+    | (ada satu jawaban benar yang jelas), jadi dinilai lewat
+    | pencocokan, bukan rubric AI naratif yang tidak relevan untuk
+    | jawaban sependek ini.
+    */
+
+    /**
+     * Nilai satu WritingQuestion non-AI (grading_type exact_match /
+     * multiple_choice). Return: ['score' => int 0-100, 'feedback' =>
+     * string, 'is_correct' => bool|null].
+     */
+    private function scoreWritingRuleBased(
+        WritingQuestion $question,
+        string $studentAnswer
+    ): array {
+        if ($question->grading_type === 'multiple_choice') {
+            return $this->scoreMultipleChoiceWriting(
+                $question,
+                $studentAnswer
+            );
+        }
+
+        // Default: exact_match.
+        return $this->scoreExactMatchWriting(
+            $question,
+            $studentAnswer
+        );
+    }
+
+    /**
+     * exact_match: dibandingkan setelah dinormalisasi (lowercase, trim,
+     * spasi dirapikan, tanda baca akhir kalimat dilepas). Kecocokan
+     * sebagian (mis. urutan kata/kalimat sudah benar tapi ada typo
+     * kecil) tetap diberi skor proporsional lewat kemiripan token,
+     * bukan 0 mentah - supaya tidak terlalu keras untuk siswa yang
+     * sudah paham tapi salah tulis sedikit.
+     */
+    private function scoreExactMatchWriting(
+        WritingQuestion $question,
+        string $studentAnswer
+    ): array {
+        $expected = (string) ($question->correct_answer ?? '');
+
+        $normalisedExpected = $this->normaliseTextForMatching($expected);
+        $normalisedActual = $this->normaliseTextForMatching($studentAnswer);
+
+        if ($normalisedActual === '') {
+            return [
+                'score' => 0,
+                'is_correct' => false,
+                'feedback' => 'Belum ada jawaban yang dikirim untuk soal ini.',
+            ];
+        }
+
+        if ($normalisedActual === $normalisedExpected) {
+            return [
+                'score' => 100,
+                'is_correct' => true,
+                'feedback' => 'Jawaban benar dan sudah sesuai urutan/struktur yang diharapkan.',
+            ];
+        }
+
+        $similarity = $this->tokenSimilarity(
+            $normalisedExpected,
+            $normalisedActual
+        );
+
+        // Kecocokan sebagian: skala 0-85 (di bawah 100 supaya jawaban
+        // yang benar sempurna tetap unggul), dibulatkan ke kelipatan 5
+        // biar tidak terkesan presisi semu.
+        $score = (int) (round(($similarity * 85) / 5) * 5);
+
+        return [
+            'score' => $score,
+            'is_correct' => false,
+            'feedback' =>
+                $score >= 60
+                    ? 'Sebagian besar sudah tepat, tapi urutan/kata-katanya belum persis seperti yang diharapkan. Periksa kembali susunannya.'
+                    : 'Urutan atau susunan kata/kalimatnya masih perlu diperbaiki. Baca ulang instruksi soal dan coba susun kembali.',
+        ];
+    }
+
+    /**
+     * multiple_choice: $studentAnswer berisi teks pilihan yang dipilih
+     * siswa (dikirim apa adanya dari <input type="radio" value="...">
+     * di blade), dicocokkan case-insensitive dengan correct_answer.
+     */
+    private function scoreMultipleChoiceWriting(
+        WritingQuestion $question,
+        string $studentAnswer
+    ): array {
+        $expected = (string) ($question->correct_answer ?? '');
+
+        $isCorrect =
+            $studentAnswer !== ''
+            &&
+            strcasecmp(trim($studentAnswer), trim($expected)) === 0;
+
+        return [
+            'score' => $isCorrect ? 100 : 0,
+            'is_correct' => $isCorrect,
+            'feedback' =>
+                $isCorrect
+                    ? 'Jenis teks yang kamu pilih sudah benar.'
+                    : 'Jenis teks yang kamu pilih belum tepat. Perhatikan lagi ciri-ciri tiap jenis teks (narrative, descriptive, expository, persuasive).',
+        ];
+    }
+
+    /**
+     * Normalisasi teks untuk exact_match: lowercase, tanda baca akhir
+     * kalimat (.,!?) dilepas, spasi berlebih dirapikan.
+     */
+    private function normaliseTextForMatching(string $text): string
+    {
+        /*
+         * Hilangkan SEMUA tanda baca pemisah kalimat/klausa (bukan hanya
+         * yang di akhir), supaya jawaban paragraf yang benar urutannya
+         * tapi ditulis dengan tanda baca natural (koma, titik di tengah
+         * kalimat) tetap bisa match 100% dengan correct_answer yang
+         * disimpan tanpa tanda baca. Apostrof dipertahankan supaya
+         * contraction (don't, it's) tidak pecah jadi dua token.
+         */
+        $text = mb_strtolower(trim($text));
+        $text = preg_replace('/[.,!?;:]+/u', ' ', $text);
+        $text = preg_replace('/\s+/u', ' ', (string) $text);
+
+        return trim((string) $text);
+    }
+
+    /**
+     * Kemiripan dua string berbasis token (kata/label yang dipisah
+     * koma atau spasi), 0.0-1.0. Dipakai untuk partial credit pada
+     * exact_match, bukan untuk menentukan benar/salah mutlak.
+     */
+    private function tokenSimilarity(string $expected, string $actual): float
+    {
+        $expectedTokens = preg_split('/[\s,]+/u', $expected, -1, PREG_SPLIT_NO_EMPTY);
+        $actualTokens = preg_split('/[\s,]+/u', $actual, -1, PREG_SPLIT_NO_EMPTY);
+
+        if (empty($expectedTokens)) {
+            return 0.0;
+        }
+
+        $matches = 0;
+        $expectedRemaining = $expectedTokens;
+
+        foreach ($actualTokens as $index => $token) {
+            // Cocokkan token pada posisi yang sama dulu (urutan penting
+            // untuk soal susun-kata/susun-kalimat), baru fallback ke
+            // kecocokan tanpa memandang posisi.
+            if (
+                isset($expectedTokens[$index])
+                &&
+                $expectedTokens[$index] === $token
+            ) {
+                $matches++;
+                unset($expectedRemaining[$index]);
+            }
+        }
+
+        $expectedCount = count($expectedTokens);
+
+        return $expectedCount > 0 ? ($matches / $expectedCount) : 0.0;
     }
 }
