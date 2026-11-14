@@ -1192,6 +1192,104 @@
                 @endif
 
                 @if ($questionCount > 0)
+                    @php
+                        $skipWritingIntro = $errors->any();
+                    @endphp
+
+                    <section
+                        id="writing-intro-card"
+                        class="writing-card writing-assessment-header"
+                        style="grid-template-columns: minmax(0, 1fr);"
+                        @if ($skipWritingIntro) hidden @endif>
+                        <div class="writing-assessment-copy">
+                            <span class="writing-eyebrow">
+                                Before You Start
+                            </span>
+
+                            <h1 class="writing-title">
+                                Let's Warm Up First
+                            </h1>
+
+                            <p class="writing-subtitle">
+                                This {{ $skill }} test shows us how you write in
+                                English right now — there's no "wrong school"
+                                here. We just use it to set up lessons that
+                                actually fit your level.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section
+                        id="writing-intro-steps"
+                        class="writing-card writing-result-section"
+                        @if ($skipWritingIntro) hidden @endif>
+                        <header class="writing-section-head">
+                            <div>
+                                <h2 class="writing-section-title">
+                                    How This Works
+                                </h2>
+
+                                <p class="writing-section-subtitle">
+                                    Quick and simple. Just follow these steps.
+                                </p>
+                            </div>
+
+                            <span class="writing-section-badge">
+                                {{ $questionCount }}
+                                {{ $questionCount === 1 ? 'task' : 'tasks' }}
+                            </span>
+                        </header>
+
+                        <div class="writing-feedback-box" style="line-height: 1.9;">
+                            <strong>1. Read the task first.</strong>
+                            Each task gives you a topic and a short mind map
+                            to help you plan.
+                            <br>
+                            <strong>2. Plan, then write.</strong>
+                            Use the mind map steps before you start typing
+                            your answer.
+                            <br>
+                            <strong>3. Write in the box.</strong>
+                            Answer in full sentences, in your own words.
+                            <br>
+                            <strong>4. Check before you submit.</strong>
+                            You can go back and fix any answer before
+                            submitting.
+                        </div>
+                    </section>
+
+                    <section
+                        id="writing-intro-action"
+                        class="writing-card writing-navigation"
+                        @if ($skipWritingIntro) hidden @endif>
+                        <div
+                            class="writing-navigation-inner"
+                            style="justify-content: flex-end;">
+                            <button
+                                id="writing-start-button"
+                                type="button"
+                                class="writing-button writing-button-primary">
+                                I'm Ready, Let's Start
+
+                                <svg
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                    aria-hidden="true">
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M9 5l7 7-7 7">
+                                    </path>
+                                </svg>
+                            </button>
+                        </div>
+                    </section>
+
+                    <div
+                        id="writing-assessment-body"
+                        @if (! $skipWritingIntro) hidden @endif>
                     <form
                         id="writing-assessment-form"
                         action="{{ route('student.assessment.submit', [
@@ -1388,6 +1486,7 @@
                             </section>
                         </div>
                     </form>
+                    </div>
                 @else
                     <section class="writing-card writing-empty">
                         <span class="writing-empty-icon">
@@ -1428,6 +1527,41 @@
         @if ($questionCount > 0)
             <script>
                 document.addEventListener('DOMContentLoaded', function () {
+                    const introCard = document.getElementById(
+                        'writing-intro-card'
+                    );
+
+                    const introSteps = document.getElementById(
+                        'writing-intro-steps'
+                    );
+
+                    const introAction = document.getElementById(
+                        'writing-intro-action'
+                    );
+
+                    const startButton = document.getElementById(
+                        'writing-start-button'
+                    );
+
+                    const assessmentBody = document.getElementById(
+                        'writing-assessment-body'
+                    );
+
+                    if (startButton && assessmentBody) {
+                        startButton.addEventListener('click', function () {
+                            if (introCard) introCard.hidden = true;
+                            if (introSteps) introSteps.hidden = true;
+                            if (introAction) introAction.hidden = true;
+
+                            assessmentBody.hidden = false;
+
+                            assessmentBody.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'start'
+                            });
+                        });
+                    }
+
                     const form = document.getElementById(
                         'writing-assessment-form'
                     );
